@@ -7,8 +7,6 @@ import json
 from datetime import datetime
 from typing import Dict, Any, Optional, List
 from supabase import create_client, Client
-from sentence_transformers import SentenceTransformer
-import numpy as np
 from config import Config
 
 
@@ -18,9 +16,12 @@ class CapabilityRegistry:
     Tools are stored as Python files with metadata in a Supabase database with vector search.
     """
     
-    def __init__(self):
+    def __init__(self, llm_client=None):
         """
         Initialize the capability registry with Supabase
+        
+        Args:
+            llm_client: LLMClient instance for generating embeddings (optional)
         """
         self.tools_dir = Config.TOOLS_DIR
         
@@ -30,8 +31,12 @@ class CapabilityRegistry:
         # Initialize Supabase client
         self.supabase: Client = create_client(Config.SUPABASE_URL, Config.SUPABASE_KEY)
         
-        # Initialize sentence transformer for embeddings
-        self.encoder = SentenceTransformer('all-MiniLM-L6-v2')
+        # Initialize LLM client for embeddings (lazy import to avoid circular dependency)
+        if llm_client:
+            self.llm_client = llm_client
+        else:
+            from src.llm_client import LLMClient
+            self.llm_client = LLMClient()
         
         # Initialize database tables if needed
         self._ensure_tables_exist()
@@ -49,23 +54,22 @@ class CapabilityRegistry:
         #   test_path TEXT NOT NULL,
         #   docstring TEXT NOT NULL,
         #   timestamp TIMESTAMP NOT NULL,
-        #   embedding VECTOR(384)  -- for all-MiniLM-L6-v2 model
+        #   embedding VECTOR(1536)  -- for OpenAI text-embedding-3-small model
         # );
         # CREATE INDEX ON agent_tools USING ivfflat (embedding vector_cosine_ops);
         pass
     
     def _generate_embedding(self, text: str) -> List[float]:
         """
-        Generate embedding vector for text
+        Generate embedding vector for text using OpenAI's embedding model
         
         Args:
             text: Text to embed
             
         Returns:
-            List of floats representing the embedding
+            List of floats representing the embedding (1536 dimensions)
         """
-        embedding = self.encoder.encode(text)
-        return embedding.tolist()
+        return self.llm_client.generate_embedding(text)
     
     def add_tool(self, name: str, code: str, tests: str, docstring: str) -> Dict[str, Any]:
         """

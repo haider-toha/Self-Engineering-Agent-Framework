@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS agent_tools (
     test_path TEXT NOT NULL,
     docstring TEXT NOT NULL,
     created_at TIMESTAMP NOT NULL,
-    embedding VECTOR(384)  -- 384 dimensions for all-MiniLM-L6-v2 model
+    embedding VECTOR(1536)  -- 1536 dimensions for OpenAI text-embedding-3-small model
 );
 
 -- Create an index for vector similarity search
@@ -22,7 +22,7 @@ WITH (lists = 100);
 
 -- Create a function to search for similar tools
 CREATE OR REPLACE FUNCTION search_tools(
-    query_embedding VECTOR(384),
+    query_embedding VECTOR(1536),
     similarity_threshold FLOAT DEFAULT 0.4,
     match_count INT DEFAULT 1
 )

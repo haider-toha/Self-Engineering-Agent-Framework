@@ -91,7 +91,7 @@ queryForm.addEventListener('submit', (e) => {
     updateButtonState();
     updateStatus('Processing', 'warning');
     
-    addLog('info', `📝 Query: ${prompt}`);
+    addLog('info', `Query: ${prompt}`);
 });
 
 // Example button clicks

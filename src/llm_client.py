@@ -3,7 +3,7 @@ LLM Client - Wrapper around OpenAI API for the Self-Engineering Agent Framework
 """
 
 import json
-from typing import Dict, Any
+from typing import Dict, Any, List
 from openai import OpenAI
 from config import Config
 
@@ -296,6 +296,25 @@ Extract the arguments as JSON."""
             return args
         except json.JSONDecodeError as e:
             raise Exception(f"Failed to parse argument extraction as JSON: {e}\nResponse: {response}")
+    
+    def generate_embedding(self, text: str) -> List[float]:
+        """
+        Generate embedding vector for text using OpenAI's embedding model
+        
+        Args:
+            text: Text to embed
+            
+        Returns:
+            List of floats representing the embedding (1536 dimensions)
+        """
+        try:
+            response = self.client.embeddings.create(
+                model=Config.OPENAI_EMBEDDING_MODEL,
+                input=text
+            )
+            return response.data[0].embedding
+        except Exception as e:
+            raise Exception(f"Embedding generation failed: {str(e)}")
     
     def synthesize_response(self, prompt: str, tool_result: Any) -> str:
         """
