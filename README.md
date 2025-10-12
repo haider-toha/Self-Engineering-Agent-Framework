@@ -183,15 +183,15 @@ All configuration is managed through environment variables defined in the `.env`
 -   **Test-Driven Verification**: New capabilities are only integrated into the agent's toolset after passing a comprehensive, self-generated test suite.
 -   **API Key Management**: Sensitive keys are managed via a `.env` file, which should not be committed to version control.
 
-## Limitations and Future Enhancements
+## Limitations and Future Work
 
 ### Current Limitations
 -   The synthesis process is limited to generating tools in Python.
 -   The secure sandbox has network access disabled, preventing tools from making external API calls.
 -   The agent processes requests sequentially.
 
-### Potential Enhancements
+### Potential Improvements
 -   **Multi-language Support**: Extend the synthesis engine to generate tools in other languages (e.g., JavaScript).
 -   **Tool Composition**: Implement a planner to allow the agent to chain multiple tools together to solve complex problems.
 -   **Learning from Failure**: Enable the agent to analyze test failures and self-correct its code implementation.
--   **Tool Versioning**: Add a system to track and manage different versions of synthesized tools.
+-   **Tool Versioning**: Add a system to track and manage different versions of synthesised tools.
