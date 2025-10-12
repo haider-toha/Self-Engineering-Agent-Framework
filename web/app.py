@@ -23,7 +23,12 @@ app.config['SECRET_KEY'] = 'self-engineering-agent-secret-key'
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 
 # Initialize orchestrator
-orchestrator = AgentOrchestrator()
+try:
+    orchestrator = AgentOrchestrator()
+except Exception as e:
+    print(f"Failed to initialize orchestrator: {e}")
+    # Create a minimal fallback
+    orchestrator = None
 
 
 @app.route('/')
@@ -36,6 +41,12 @@ def index():
 def get_tools():
     """Get list of all available tools"""
     try:
+        if orchestrator is None:
+            return jsonify({
+                "success": False,
+                "error": "Orchestrator not initialized"
+            }), 500
+            
         tools = orchestrator.get_all_tools()
         return jsonify({
             "success": True,

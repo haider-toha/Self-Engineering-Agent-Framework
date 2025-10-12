@@ -47,5 +47,6 @@ if __name__ != "__main__":
     try:
         Config.validate()
     except ValueError as e:
-        print(f"Warning: {e}")
+        print(f"Configuration Error: {e}")
+        # Don't raise in production, just log the warning
 

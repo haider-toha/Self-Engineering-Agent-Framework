@@ -31,15 +31,19 @@ class CapabilityRegistry:
         # Initialize Supabase client
         self.supabase: Client = create_client(Config.SUPABASE_URL, Config.SUPABASE_KEY)
         
-        # Initialize LLM client for embeddings (lazy import to avoid circular dependency)
-        if llm_client:
-            self.llm_client = llm_client
-        else:
-            from src.llm_client import LLMClient
-            self.llm_client = LLMClient()
+        # Store LLM client reference (will be initialized when first needed)
+        self._llm_client = llm_client
         
         # Initialize database tables if needed
         self._ensure_tables_exist()
+    
+    @property
+    def llm_client(self):
+        """Lazy-load LLM client to avoid circular imports"""
+        if self._llm_client is None:
+            from src.llm_client import LLMClient
+            self._llm_client = LLMClient()
+        return self._llm_client
     
     def _ensure_tables_exist(self):
         """
