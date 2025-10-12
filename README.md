@@ -17,133 +17,127 @@ The agent becomes more capable over time with every new tool it builds, effectiv
 ## Architecture
 
 ```mermaid
-flowchart TD
-    %% USER INTERFACE
-    A[/"User Request (Web UI)"/] --> B["Central Orchestrator<br/>(Coordinates the entire flow<br/>with real-time updates)"]
+graph TD
+    subgraph "User Interaction"
+        A[User Request via Web UI]
+    end
 
-    %% MAIN BRANCH
-    B --> C["Capability Registry<br/>(Vector DB Search)"]
-    C -->|Tool Found? YES| D["Tool Executor<br/>(Dynamic Loading)"]
-    C -->|Tool Found? NO| E["Synthesis Engine<br/>(TDD Workflow)<br/>1. Generate Spec<br/>2. Generate Tests<br/>3. Implement Code<br/>4. Verify in Sandbox<br/>5. Register Tool"]
+    subgraph "Core Agent Logic"
+        B[Central Orchestrator]
+        C[Capability Registry - Vector DB]
+        D[Tool Executor]
+        E[Synthesis Engine]
+        F[Secure Sandbox - Docker]
+    end
 
-    %% SYNTHESIS ENGINE & SANDBOX LOOP
-    E --> F["Secure Sandbox<br/>(Docker)"]
-    F --> E
+    subgraph "Response Generation"
+        G[Response Synthesizer]
+        H[Final Response to UI]
+    end
 
-    %% TOOL EXECUTION FLOW
-    D --> G["Response Synthesizer<br/>(Natural Language)"]
-    E --> G
+    A --> B
+    B --> C{Search for Tool}
+    C -->|Tool Found| D
+    C -->|No Tool Found| E
 
-    %% FINAL OUTPUT
-    G --> H["Final Response"]
+    E --"1. Generate Spec & Tests"--> E
+    E --"2. Implement Code"--> E
+    E --"3. Verify"--> F
+    F --"Pass / Fail"--> E
+    E --"4. Register Tool"--> C
+    E --"5. Execute New Tool"--> D
+    
+    D --> G
+    G --> H
 
-    %% STYLING
-    style A fill:#0f0f0f,stroke:#333,stroke-width:1px,color:#fff
-    style B fill:#111,stroke:#444,stroke-width:1px,color:#fff
-    style C fill:#1a1a1a,stroke:#444,stroke-width:1px,color:#fff
-    style D fill:#222,stroke:#444,stroke-width:1px,color:#fff
-    style E fill:#1a1a1a,stroke:#444,stroke-width:1px,color:#fff
-    style F fill:#111,stroke:#444,stroke-width:1px,color:#fff
-    style G fill:#0f0f0f,stroke:#333,stroke-width:1px,color:#fff
-    style H fill:#0a0a0a,stroke:#333,stroke-width:1px,color:#fff
-
+    style A fill:#2b2d42,stroke:#8d99ae,color:#edf2f4
+    style B fill:#1e2133,stroke:#8d99ae,color:#edf2f4
+    style C fill:#2b2d42,stroke:#8d99ae,color:#edf2f4
+    style D fill:#2b2d42,stroke:#8d99ae,color:#edf2f4
+    style E fill:#1e2133,stroke:#8d99ae,color:#edf2f4
+    style F fill:#2b2d42,stroke:#8d99ae,color:#edf2f4
+    style G fill:#1e2133,stroke:#8d99ae,color:#edf2f4
+    style H fill:#2b2d42,stroke:#8d99ae,color:#edf2f4
 ```
 
 ## Key Features
 
-- **Self-Engineering**: Creates new tools autonomously when needed
-- **Test-Driven Development**: Every tool is tested before integration
-- **Security First**: All code runs in isolated Docker containers
-- **Real-Time Visualization**: Web UI shows the entire synthesis process
-- **Semantic Search**: Uses vector embeddings to find relevant tools
-- **Reusability**: Tools persist and are reused for future requests
-- **Modern Web Interface**: Responsive UI with WebSocket updates
+- **Self-Engineering**: Creates new tools autonomously when needed.
+- **Test-Driven Development**: Every tool is tested before integration.
+- **Security First**: All code runs in isolated Docker containers.
+- **Real-Time Visualization**: Web UI shows the entire synthesis process.
+- **Semantic Search**: Uses vector embeddings to find relevant tools.
+- **Reusability**: Tools persist and are reused for future requests.
+- **Modern Web Interface**: Responsive UI with WebSocket updates.
 
 ## Quick Start
 
 ### Prerequisites
 
 - Python 3.10 or higher
-- Docker Desktop (running)
-- OpenAI API key
+- Docker Desktop (must be running)
+- An OpenAI API key
 
 ### Installation
 
-1.  **Clone the repository**
+1.  **Clone the repository and navigate into the directory:**
     ```bash
+    git clone https://github.com/your-repo/Self-Engineering-Agent-Framework.git
     cd "Self-Engineering Agent Framework"
     ```
 
-2.  **Install dependencies**
+2.  **Install dependencies:**
     ```bash
     pip install -r requirements.txt
     ```
 
-3.  **Configure environment**
-    
-    Create a `.env` file in the root directory:
+3.  **Configure your environment:**
+    Create a `.env` file in the root directory and add your API key. See `.env.example` for all options.
     ```env
     OPENAI_API_KEY=your_openai_api_key_here
-    OPENAI_MODEL=gpt-4
-    SIMILARITY_THRESHOLD=0.75
-    DOCKER_IMAGE_NAME=self-eng-sandbox
-    CHROMA_PERSIST_DIR=./chroma_db
     ```
 
-4.  **Build the Docker sandbox image**
+4.  **Build the Docker sandbox image:**
     ```bash
     python -c "from src.sandbox import SecureSandbox; SecureSandbox().build_image()"
     ```
 
-5.  **Seed initial tools** (optional but recommended)
+5.  **Seed initial tools (optional but recommended):**
     ```bash
     python seed_tools.py
     ```
 
-6.  **Start the web server**
+6.  **Start the web server:**
     ```bash
     python web/app.py
     ```
 
-7.  **Open your browser**
-    
+7.  **Open the application in your browser:**
     Navigate to `http://localhost:5000`
 
 ## Usage Examples
 
 ### Example 1: Using an Existing Tool
 
-**User Query**: "What is 15 percent of 300?"
-
-**Agent Behavior**:
-1. Searches capability registry
-2. Finds `calculate_percentage` tool (high similarity)
-3. Executes the tool with extracted arguments
-4. Returns natural language response: "15 percent of 300 is 45."
+-   **User Query**: "What is 15 percent of 300?"
+-   **Agent Behavior**:
+    1.  Searches capability registry.
+    2.  Finds `calculate_percentage` tool with high similarity.
+    3.  Executes the tool with extracted arguments.
+    4.  Returns a natural language response: "15 percent of 300 is 45."
 
 ### Example 2: Creating a New Tool
 
-**User Query**: "Reverse the string 'hello world'"
-
-**Agent Behavior**:
-1. Searches capability registry
-2. No matching tool found - enters synthesis mode
-3. **Specification**: Defines `reverse_string(s: str) -> str`
-4. **Tests**: Generates test cases (normal, empty, single char)
-5. **Implementation**: Writes the function code
-6. **Verification**: Runs tests in Docker sandbox - all pass
-7. **Registration**: Saves tool permanently
-8. **Execution**: Runs the new tool immediately
-9. Returns: "The reversed string is 'dlrow olleh'"
-
-### Example 3: Reusing a Synthesized Tool
-
-**User Query**: "Reverse 'Python'"
-
-**Agent Behavior**:
-1. Finds the previously created `reverse_string` tool
-2. Executes it immediately
-3. Returns: "The reversed string is 'nohtyP'"
+-   **User Query**: "Reverse the string 'hello world'"
+-   **Agent Behavior**:
+    1.  Searches capability registry and finds no matching tool.
+    2.  **Specification**: Defines the function signature `reverse_string(s: str) -> str`.
+    3.  **Tests**: Generates unit tests for normal, empty, and single-character strings.
+    4.  **Implementation**: Writes the Python code for the function.
+    5.  **Verification**: Executes the tests in the secure Docker sandbox. All tests pass.
+    6.  **Registration**: Saves the new tool's code and vector embedding.
+    7.  **Execution**: Runs the newly created tool.
+    8.  Returns the result: "The reversed string is 'dlrow olleh'."
 
 ## Project Structure
 
@@ -155,109 +149,49 @@ Self-Engineering Agent Framework/
 │   ├── synthesis_engine.py      # TDD-based tool creation
 │   ├── sandbox.py               # Docker-based secure execution
 │   ├── executor.py              # Dynamic tool loading & execution
-│   ├── response_synthesizer.py # Natural language response generation
+│   ├── response_synthesizer.py  # Natural language response generation
 │   └── llm_client.py            # OpenAI API wrapper
-├── tools/                        # Auto-generated tools persist here
+├── tools/                        # Directory where generated tools are saved
 ├── web/
 │   ├── app.py                   # Flask server with WebSocket support
-│   ├── static/
-│   │   ├── style.css            # Modern UI styling
-│   │   └── script.js            # Real-time frontend logic
-│   └── templates/
-│       └── index.html           # Web interface
+│   ├── static/                  # CSS and JavaScript files
+│   └── templates/               # HTML templates
 ├── docker/
-│   └── sandbox.dockerfile       # Minimal Python + pytest environment
-├── chroma_db/                   # Vector database storage (auto-created)
-├── config.py                    # Configuration management
+│   └── sandbox.dockerfile       # Dockerfile for the secure sandbox
+├── config.py                    # Application configuration
 ├── requirements.txt             # Python dependencies
-├── seed_tools.py                # Initial tool seeding script
-├── .env.example                 # Environment variable template
+├── .env.example                 # Template for environment variables
 └── README.md                    # This file
 ```
 
 ## Configuration
 
-All configuration is managed through environment variables in the `.env` file:
+All configuration is managed through environment variables defined in the `.env` file.
 
 | Variable | Default | Description |
-|----------|---------|-------------|
-| `OPENAI_API_KEY` | *required* | Your OpenAI API key |
-| `OPENAI_MODEL` | `gpt-4` | LLM model to use |
-| `SIMILARITY_THRESHOLD` | `0.75` | Minimum similarity for tool matching (0-1) |
-| `DOCKER_IMAGE_NAME` | `self-eng-sandbox` | Name for the sandbox Docker image |
-| `DOCKER_TIMEOUT` | `30` | Sandbox execution timeout (seconds) |
-| `CHROMA_PERSIST_DIR` | `./chroma_db` | Vector database storage location |
-| `TOOLS_DIR` | `./tools` | Directory for tool storage |
-| `FLASK_HOST` | `0.0.0.0` | Web server host |
-| `FLASK_PORT` | `5000` | Web server port |
-
-## Testing
-
-### Test Individual Components
-
-```bash
-# Test LLM Client
-python src/llm_client.py
-
-# Test Capability Registry
-python src/capability_registry.py
-
-# Test Sandbox
-python src/sandbox.py
-
-# Test Synthesis Engine
-python src/synthesis_engine.py
-
-# Test Orchestrator
-python src/orchestrator.py
-```
-
-### Run Tool Tests
-
-```bash
-# Test a specific tool
-cd tools
-pytest test_calculate_percentage.py -v
-```
+|---|---|---|
+| `OPENAI_API_KEY` | **Required** | Your OpenAI API key. |
+| `OPENAI_MODEL` | `gpt-4` | The LLM model to be used for generation. |
+| `SIMILARITY_THRESHOLD`| `0.75` | Minimum similarity score for a tool to be considered a match (0-1). |
+| `DOCKER_IMAGE_NAME` | `self-eng-sandbox` | Name for the sandbox Docker image. |
+| `DOCKER_TIMEOUT` | `30` | Execution timeout in seconds for the sandbox. |
+| `FLASK_PORT` | `5000` | Port for the local web server. |
 
 ## Security Considerations
 
-1.  **Docker Isolation**: All untrusted code runs in isolated containers with:
-    - No network access
-    - Limited CPU and memory
-    - Read-only volume mounts
-    - Immediate destruction after execution
+-   **Code Isolation**: All generated code is executed in a sandboxed Docker container with no network access, read-only file system mounts, and strict resource limits (CPU, memory). Containers are destroyed immediately after execution.
+-   **Test-Driven Verification**: New capabilities are only integrated into the agent's toolset after passing a comprehensive, self-generated test suite.
+-   **API Key Management**: Sensitive keys are managed via a `.env` file, which should not be committed to version control.
 
-2.  **Code Verification**: Every synthesized tool must pass its test suite before integration
-
-3.  **API Key Protection**: Store your OpenAI API key securely in `.env` (and do not commit it)
-
-4.  **Input Validation**: All user inputs are processed through the LLM before execution
-
-## Web Interface Features
-
-- **Real-Time Activity Log**: See exactly what the agent is doing
-- **Color-Coded Status**: Visual feedback for each step
-- **Tool Library**: Browse all available capabilities
-- **Example Queries**: Quick-start templates
-- **Responsive Design**: Works on desktop and mobile
-- **WebSocket Updates**: Live progress without page refresh
-
-## Limitations & Future Enhancements
+## Limitations and Future Enhancements
 
 ### Current Limitations
-
-- Tools are Python-only
-- Network access is disabled in the sandbox
-- No tool versioning or rollback
-- Single-threaded request processing
+-   The synthesis process is limited to generating tools in Python.
+-   The secure sandbox has network access disabled, preventing tools from making external API calls.
+-   The agent processes requests sequentially.
 
 ### Potential Enhancements
-
-- **Multi-language support**: Generate tools in JavaScript, Go, etc.
-- **Tool composition**: Combine existing tools to create complex workflows
-- **Learning from failures**: Analyze failed syntheses to improve
-- **Tool optimization**: Refactor tools for better performance
-- **Collaborative filtering**: Suggest tools based on usage patterns
-- **Export/Import**: Share tool libraries between instances
-- **Version control**: Track tool evolution over time
+-   **Multi-language Support**: Extend the synthesis engine to generate tools in other languages (e.g., JavaScript).
+-   **Tool Composition**: Implement a planner to allow the agent to chain multiple tools together to solve complex problems.
+-   **Learning from Failure**: Enable the agent to analyze test failures and self-correct its code implementation.
+-   **Tool Versioning**: Add a system to track and manage different versions of synthesized tools.
