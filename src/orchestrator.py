@@ -74,6 +74,11 @@ class AgentOrchestrator:
                 callback(event_type, data)
         
         try:
+            # Step 0: Cleanup orphaned tools to ensure DB is in sync with the filesystem
+            removed_count = self.registry.cleanup_orphaned_tools()
+            if removed_count > 0:
+                emit("orphans_cleaned", {"count": removed_count})
+
             # Step 1: Search for existing capability
             emit("searching", {"query": user_prompt})
             

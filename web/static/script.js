@@ -107,6 +107,10 @@ function handleAgentEvent(eventType, data) {
     console.log('Agent event:', eventType, data);
     
     switch (eventType) {
+        case 'orphans_cleaned':
+            addLog('info', `🧹 Found and removed ${data.count} orphaned tool(s) from the database.`);
+            break;
+            
         case 'searching':
             addLog('info', '🔍 Searching for existing capability...');
             break;
@@ -282,18 +286,74 @@ function displayTools(tools) {
         const description = tool.docstring.split('\n')[0] || 'No description';
         
         return `
-            <div class="tool-card">
+            <div class="tool-card" data-tool-name="${tool.name}">
                 <div class="tool-name">${tool.name}</div>
                 <div class="tool-description">${description}</div>
                 <div class="tool-timestamp">Created: ${timestamp}</div>
             </div>
         `;
     }).join('');
+    
+    // Add click event listeners to tool cards
+    document.querySelectorAll('.tool-card').forEach(card => {
+        card.addEventListener('click', () => {
+            const toolName = card.getAttribute('data-tool-name');
+            showToolDetails(toolName);
+        });
+    });
 }
 
-// Initialize
+// Modal functionality
+function showToolDetails(toolName) {
+    fetch(`/api/tools/${toolName}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                populateModal(data.tool);
+                document.getElementById('tool-modal').style.display = 'block';
+            } else {
+                console.error('Failed to load tool details:', data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error loading tool details:', error);
+        });
+}
+
+function populateModal(tool) {
+    document.getElementById('modal-tool-name').textContent = tool.name;
+    document.getElementById('modal-tool-description').textContent = tool.docstring;
+    document.getElementById('modal-tool-timestamp').textContent = new Date(tool.timestamp).toLocaleString();
+    document.getElementById('modal-tool-filepath').textContent = tool.file_path;
+    document.getElementById('modal-tool-code').textContent = tool.code;
+    document.getElementById('modal-test-code').textContent = tool.test_code;
+}
+
+function closeModal() {
+    document.getElementById('tool-modal').style.display = 'none';
+}
+
+// Initialize modal event listeners
 document.addEventListener('DOMContentLoaded', () => {
     console.log('Self-Engineering Agent Framework - Frontend Initialized');
     loadTools();
+    
+    // Modal close functionality
+    document.getElementById('modal-close').addEventListener('click', closeModal);
+    
+    // Close modal when clicking outside
+    window.addEventListener('click', (event) => {
+        const modal = document.getElementById('tool-modal');
+        if (event.target === modal) {
+            closeModal();
+        }
+    });
+    
+    // Close modal with Escape key
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            closeModal();
+        }
+    });
 });
 

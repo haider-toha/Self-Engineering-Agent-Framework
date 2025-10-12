@@ -49,6 +49,46 @@ def get_tools():
         }), 500
 
 
+@app.route('/api/tools/<tool_name>', methods=['GET'])
+def get_tool_details(tool_name):
+    """Get detailed information about a specific tool"""
+    try:
+        tool_info = orchestrator.registry.get_tool_by_name(tool_name)
+        if not tool_info:
+            return jsonify({
+                "success": False,
+                "error": "Tool not found"
+            }), 404
+        
+        # Read the test file
+        test_code = ""
+        try:
+            with open(tool_info['test_path'], 'r', encoding='utf-8') as f:
+                test_code = f.read()
+        except FileNotFoundError:
+            test_code = "Test file not found"
+        except Exception as e:
+            test_code = f"Error reading test file: {str(e)}"
+        
+        return jsonify({
+            "success": True,
+            "tool": {
+                "name": tool_info['name'],
+                "code": tool_info['code'],
+                "test_code": test_code,
+                "docstring": tool_info['docstring'],
+                "timestamp": tool_info['timestamp'],
+                "file_path": tool_info['file_path'],
+                "test_path": tool_info['test_path']
+            }
+        })
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
 @socketio.on('connect')
 def handle_connect():
     """Handle client connection"""

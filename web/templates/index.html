@@ -90,6 +90,42 @@
         </footer>
     </div>
 
+    <!-- Tool Details Modal -->
+    <div id="tool-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-tool-name">Tool Details</h2>
+                <span class="close" id="modal-close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="tool-info">
+                    <div class="info-item">
+                        <strong>Description:</strong>
+                        <p id="modal-tool-description"></p>
+                    </div>
+                    <div class="info-item">
+                        <strong>Created:</strong>
+                        <p id="modal-tool-timestamp"></p>
+                    </div>
+                    <div class="info-item">
+                        <strong>File Path:</strong>
+                        <p id="modal-tool-filepath"></p>
+                    </div>
+                </div>
+                
+                <div class="code-section">
+                    <h3>Implementation Code</h3>
+                    <pre><code id="modal-tool-code"></code></pre>
+                </div>
+                
+                <div class="code-section">
+                    <h3>Test Code</h3>
+                    <pre><code id="modal-test-code"></code></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>
