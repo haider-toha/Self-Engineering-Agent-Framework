@@ -29,13 +29,13 @@
         <div class="main-content">
             <!-- Query Input Section -->
             <div class="query-section card">
-                <h2>Ask the Agent</h2>
+                <h2>Query Input</h2>
                 <form id="query-form">
                     <div class="input-group">
                         <input 
                             type="text" 
                             id="user-prompt" 
-                            placeholder="What would you like me to do? (e.g., 'Calculate 15% of 300' or 'Reverse the string hello')"
+                            placeholder="Enter your request (e.g., 'Calculate 15% of 300')"
                             autocomplete="off"
                         />
                         <button type="submit" id="submit-btn">
@@ -45,7 +45,7 @@
                     </div>
                 </form>
                 <div class="examples">
-                    <p>Try these examples:</p>
+                    <p>Example queries:</p>
                     <button class="example-btn" data-prompt="What is 25 percent of 80?">Calculate percentage</button>
                     <button class="example-btn" data-prompt="Convert 100 degrees Fahrenheit to Celsius">Temperature conversion</button>
                     <button class="example-btn" data-prompt="Reverse the string 'hello world'">Reverse string</button>
@@ -61,7 +61,7 @@
                     <div id="activity-log" class="activity-log">
                         <div class="log-entry info">
                             <span class="log-time">--:--:--</span>
-                            <span class="log-message">Waiting for your request...</span>
+                            <span class="log-message">Awaiting query...</span>
                         </div>
                     </div>
                 </div>
@@ -70,7 +70,7 @@
                 <div class="response-section card">
                     <h2>Response</h2>
                     <div id="response-container" class="response-container">
-                        <p class="placeholder">Your response will appear here...</p>
+                        <p class="placeholder">Response will be displayed here.</p>
                     </div>
                 </div>
             </div>
@@ -86,7 +86,7 @@
 
         <!-- Footer -->
         <footer class="footer">
-            <p>Self-Engineering Agent Framework - A demonstration of autonomous capability synthesis</p>
+            <p>Self-Engineering Agent Framework</p>
         </footer>
     </div>
 

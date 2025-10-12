@@ -1,20 +1,20 @@
-# 🤖 Self-Engineering Agent Framework
+# Self-Engineering Agent Framework
 
-An autonomous agent that doesn't just use a fixed set of tools, but actively and safely engineers new tools for itself in real-time using Test-Driven Development (TDD) methodology.
+An autonomous agent that doesn't just use a fixed set of tools, but actively and safely engineers new tools for itself in real-time using Test-Driven Development (TDD).
 
-## 🌟 Overview
+## Overview
 
-When faced with a user request it cannot fulfill with existing capabilities, this agent enters "synthesis mode" where it:
+When faced with a user request it cannot fulfill with existing capabilities, this agent enters a synthesis mode where it:
 
-1. **Defines requirements** for the missing tool
-2. **Writes unit tests** to ensure correctness (TDD)
-3. **Implements the code** to pass those tests
-4. **Verifies in a secure sandbox** (Docker container)
-5. **Integrates permanently** into its skillset for future use
+1.  **Defines requirements** for the missing tool
+2.  **Writes unit tests** to ensure correctness (TDD)
+3.  **Implements the code** to pass those tests
+4.  **Verifies in a secure sandbox** (Docker container)
+5.  **Integrates permanently** into its skillset for future use
 
 The agent becomes more capable over time with every new tool it builds, effectively learning from interactions.
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -67,17 +67,17 @@ The agent becomes more capable over time with every new tool it builds, effectiv
                     └──────────────┘
 ```
 
-## ✨ Key Features
+## Key Features
 
-- **🔧 Self-Engineering**: Creates new tools autonomously when needed
-- **✅ Test-Driven Development**: Every tool is tested before integration
-- **🔒 Security First**: All code runs in isolated Docker containers
-- **📊 Real-Time Visualization**: Web UI shows the entire synthesis process
-- **🧠 Semantic Search**: Uses vector embeddings to find relevant tools
-- **♻️ Reusability**: Tools persist and are reused for future requests
-- **🌐 Modern Web Interface**: Beautiful, responsive UI with WebSocket updates
+- **Self-Engineering**: Creates new tools autonomously when needed
+- **Test-Driven Development**: Every tool is tested before integration
+- **Security First**: All code runs in isolated Docker containers
+- **Real-Time Visualization**: Web UI shows the entire synthesis process
+- **Semantic Search**: Uses vector embeddings to find relevant tools
+- **Reusability**: Tools persist and are reused for future requests
+- **Modern Web Interface**: Responsive UI with WebSocket updates
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -87,47 +87,47 @@ The agent becomes more capable over time with every new tool it builds, effectiv
 
 ### Installation
 
-1. **Clone the repository**
-   ```bash
-   cd "Self-Engineering Agent Framework"
-   ```
+1.  **Clone the repository**
+    ```bash
+    cd "Self-Engineering Agent Framework"
+    ```
 
-2. **Install dependencies**
-   ```bash
-   pip install -r requirements.txt
-   ```
+2.  **Install dependencies**
+    ```bash
+    pip install -r requirements.txt
+    ```
 
-3. **Configure environment**
-   
-   Create a `.env` file in the root directory:
-   ```env
-   OPENAI_API_KEY=your_openai_api_key_here
-   OPENAI_MODEL=gpt-4
-   SIMILARITY_THRESHOLD=0.75
-   DOCKER_IMAGE_NAME=self-eng-sandbox
-   CHROMA_PERSIST_DIR=./chroma_db
-   ```
+3.  **Configure environment**
+    
+    Create a `.env` file in the root directory:
+    ```env
+    OPENAI_API_KEY=your_openai_api_key_here
+    OPENAI_MODEL=gpt-4
+    SIMILARITY_THRESHOLD=0.75
+    DOCKER_IMAGE_NAME=self-eng-sandbox
+    CHROMA_PERSIST_DIR=./chroma_db
+    ```
 
-4. **Build the Docker sandbox image**
-   ```bash
-   python -c "from src.sandbox import SecureSandbox; SecureSandbox().build_image()"
-   ```
+4.  **Build the Docker sandbox image**
+    ```bash
+    python -c "from src.sandbox import SecureSandbox; SecureSandbox().build_image()"
+    ```
 
-5. **Seed initial tools** (optional but recommended)
-   ```bash
-   python seed_tools.py
-   ```
+5.  **Seed initial tools** (optional but recommended)
+    ```bash
+    python seed_tools.py
+    ```
 
-6. **Start the web server**
-   ```bash
-   python web/app.py
-   ```
+6.  **Start the web server**
+    ```bash
+    python web/app.py
+    ```
 
-7. **Open your browser**
-   
-   Navigate to `http://localhost:5000`
+7.  **Open your browser**
+    
+    Navigate to `http://localhost:5000`
 
-## 🎯 Usage Examples
+## Usage Examples
 
 ### Example 1: Using an Existing Tool
 
@@ -149,7 +149,7 @@ The agent becomes more capable over time with every new tool it builds, effectiv
 3. **Specification**: Defines `reverse_string(s: str) -> str`
 4. **Tests**: Generates test cases (normal, empty, single char)
 5. **Implementation**: Writes the function code
-6. **Verification**: Runs tests in Docker sandbox - all pass ✅
+6. **Verification**: Runs tests in Docker sandbox - all pass
 7. **Registration**: Saves tool permanently
 8. **Execution**: Runs the new tool immediately
 9. Returns: "The reversed string is 'dlrow olleh'"
@@ -163,7 +163,7 @@ The agent becomes more capable over time with every new tool it builds, effectiv
 2. Executes it immediately
 3. Returns: "The reversed string is 'nohtyP'"
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 Self-Engineering Agent Framework/
@@ -193,7 +193,7 @@ Self-Engineering Agent Framework/
 └── README.md                    # This file
 ```
 
-## 🔧 Configuration
+## Configuration
 
 All configuration is managed through environment variables in the `.env` file:
 
@@ -209,7 +209,7 @@ All configuration is managed through environment variables in the `.env` file:
 | `FLASK_HOST` | `0.0.0.0` | Web server host |
 | `FLASK_PORT` | `5000` | Web server port |
 
-## 🧪 Testing
+## Testing
 
 ### Test Individual Components
 
@@ -238,21 +238,21 @@ cd tools
 pytest test_calculate_percentage.py -v
 ```
 
-## 🔒 Security Considerations
+## Security Considerations
 
-1. **Docker Isolation**: All untrusted code runs in isolated containers with:
-   - No network access
-   - Limited CPU and memory
-   - Read-only volume mounts
-   - Immediate destruction after execution
+1.  **Docker Isolation**: All untrusted code runs in isolated containers with:
+    - No network access
+    - Limited CPU and memory
+    - Read-only volume mounts
+    - Immediate destruction after execution
 
-2. **Code Verification**: Every synthesized tool must pass its test suite before integration
+2.  **Code Verification**: Every synthesized tool must pass its test suite before integration
 
-3. **API Key Protection**: Store your OpenAI API key securely in `.env` (never commit it)
+3.  **API Key Protection**: Store your OpenAI API key securely in `.env` (and do not commit it)
 
-4. **Input Validation**: All user inputs are processed through the LLM before execution
+4.  **Input Validation**: All user inputs are processed through the LLM before execution
 
-## 🎨 Web Interface Features
+## Web Interface Features
 
 - **Real-Time Activity Log**: See exactly what the agent is doing
 - **Color-Coded Status**: Visual feedback for each step
@@ -261,12 +261,12 @@ pytest test_calculate_percentage.py -v
 - **Responsive Design**: Works on desktop and mobile
 - **WebSocket Updates**: Live progress without page refresh
 
-## 🚧 Limitations & Future Enhancements
+## Limitations & Future Enhancements
 
 ### Current Limitations
 
-- Tools are Python-only (no multi-language support yet)
-- Network access disabled in sandbox (can't make API calls)
+- Tools are Python-only
+- Network access is disabled in the sandbox
 - No tool versioning or rollback
 - Single-threaded request processing
 
@@ -280,7 +280,7 @@ pytest test_calculate_percentage.py -v
 - **Export/Import**: Share tool libraries between instances
 - **Version control**: Track tool evolution over time
 
-## 🤝 Contributing
+## Contributing
 
 This is a demonstration framework. Key areas for contribution:
 
@@ -290,11 +290,11 @@ This is a demonstration framework. Key areas for contribution:
 4. Performance optimizations
 5. Security enhancements
 
-## 📝 License
+## License
 
 This project is provided as-is for educational and research purposes.
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 Built with:
 - **OpenAI GPT-4** for code generation
@@ -303,15 +303,11 @@ Built with:
 - **Flask + Socket.IO** for real-time web interface
 - **pytest** for testing framework
 
-## 📞 Support
+## Support
 
 For issues or questions:
 1. Check that Docker is running
 2. Verify your OpenAI API key is valid
 3. Ensure all dependencies are installed
 4. Check the activity log in the web UI for detailed error messages
-
----
-
-**Built with ❤️ as a demonstration of autonomous agent capabilities**
 

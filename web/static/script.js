@@ -108,27 +108,27 @@ function handleAgentEvent(eventType, data) {
     
     switch (eventType) {
         case 'orphans_cleaned':
-            addLog('info', `🧹 Found and removed ${data.count} orphaned tool(s) from the database.`);
+            addLog('info', `Found and removed ${data.count} orphaned tool(s) from the database.`);
             break;
             
         case 'searching':
-            addLog('info', '🔍 Searching for existing capability...');
+            addLog('info', 'Searching for existing capability...');
             break;
             
         case 'tool_found':
-            addLog('success', `✓ Found tool: ${data.tool_name} (similarity: ${(data.similarity * 100).toFixed(1)}%)`);
+            addLog('success', `Found tool: ${data.tool_name} (similarity: ${(data.similarity * 100).toFixed(1)}%)`);
             break;
             
         case 'tool_mismatch':
-            addLog('warning', `⚠ Tool mismatch: ${data.tool_name} - ${data.error}`);
+            addLog('warning', `Tool mismatch: ${data.tool_name} - ${data.error}`);
             break;
             
         case 'no_tool_found':
-            addLog('warning', '⚠ No matching tool found');
+            addLog('warning', 'No matching tool found');
             break;
             
         case 'entering_synthesis_mode':
-            addLog('warning', '🔧 Entering synthesis mode - creating new capability...');
+            addLog('warning', 'Entering synthesis mode - creating new capability...');
             break;
             
         case 'synthesis_step':
@@ -136,35 +136,35 @@ function handleAgentEvent(eventType, data) {
             break;
             
         case 'synthesis_successful':
-            addLog('success', `✓ Successfully synthesized: ${data.tool_name}`);
+            addLog('success', `Successfully synthesized: ${data.tool_name}`);
             break;
             
         case 'synthesis_failed':
-            addLog('error', `✗ Synthesis failed at ${data.step}: ${data.error}`);
+            addLog('error', `Synthesis failed at ${data.step}: ${data.error}`);
             break;
             
         case 'executing':
-            addLog('info', `⚙️ Executing tool: ${data.tool_name}`);
+            addLog('info', `Executing tool: ${data.tool_name}`);
             break;
             
         case 'execution_complete':
-            addLog('success', `✓ Execution complete: ${data.result}`);
+            addLog('success', `Execution complete: ${data.result}`);
             break;
             
         case 'execution_failed':
-            addLog('error', `✗ Execution failed: ${data.error}`);
+            addLog('error', `Execution failed: ${data.error}`);
             break;
             
         case 'synthesizing_response':
-            addLog('info', '💬 Generating natural language response...');
+            addLog('info', 'Generating natural language response...');
             break;
             
         case 'complete':
-            addLog('success', '✓ All done!');
+            addLog('success', 'Request complete.');
             break;
             
         case 'error':
-            addLog('error', `✗ Error: ${data.error}`);
+            addLog('error', `Error: ${data.error}`);
             break;
     }
 }
@@ -181,11 +181,11 @@ function handleSynthesisStep(data) {
     const stepName = stepNames[data.step] || data.step;
     
     if (data.status === 'in_progress') {
-        addLog('info', `⏳ ${stepName}...`);
+        addLog('info', `${stepName}...`);
     } else if (data.status === 'complete') {
-        addLog('success', `✓ ${stepName} complete`);
+        addLog('success', `${stepName} complete`);
     } else if (data.status === 'failed') {
-        addLog('error', `✗ ${stepName} failed: ${data.error}`);
+        addLog('error', `${stepName} failed: ${data.error}`);
     }
 }
 
@@ -277,7 +277,7 @@ function loadTools() {
 
 function displayTools(tools) {
     if (tools.length === 0) {
-        toolsList.innerHTML = '<p class="placeholder">No tools available yet. Try asking the agent to do something!</p>';
+        toolsList.innerHTML = '<p class="placeholder">No tools available. Ask the agent to perform a task to generate one.</p>';
         return;
     }
     
