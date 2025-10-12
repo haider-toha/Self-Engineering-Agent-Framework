@@ -16,55 +16,37 @@ The agent becomes more capable over time with every new tool it builds, effectiv
 
 ## Architecture
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    User Request (Web UI)                     │
-└──────────────────────────┬──────────────────────────────────┘
-                           │
-                           ▼
-┌─────────────────────────────────────────────────────────────┐
-│                  Central Orchestrator                        │
-│  (Coordinates the entire flow with real-time updates)       │
-└──────────────────────────┬──────────────────────────────────┘
-                           │
-          ┌────────────────┴────────────────┐
-          ▼                                 ▼
-┌──────────────────────┐         ┌──────────────────────┐
-│ Capability Registry  │   YES   │   Tool Executor      │
-│  (Vector DB Search)  ├────────▶│ (Dynamic Loading)    │
-│                      │         └──────────┬───────────┘
-│  Tool Found?         │                    │
-│                      │                    │
-└──────────┬───────────┘                    │
-           │ NO                             │
-           ▼                                │
-┌──────────────────────┐                   │
-│ Synthesis Engine     │                   │
-│  (TDD Workflow)      │                   │
-│                      │                   │
-│ 1. Generate Spec     │                   │
-│ 2. Generate Tests    │                   │
-│ 3. Implement Code    │                   │
-│ 4. Verify in Sandbox │◀──┐               │
-│ 5. Register Tool     │   │               │
-└──────────┬───────────┘   │               │
-           │                │               │
-           │         ┌──────┴───────────┐   │
-           │         │ Secure Sandbox   │   │
-           │         │ (Docker)         │   │
-           │         └──────────────────┘   │
-           │                                │
-           └────────────────┬───────────────┘
-                            ▼
-                 ┌──────────────────────┐
-                 │ Response Synthesizer │
-                 │ (Natural Language)   │
-                 └──────────┬───────────┘
-                            │
-                            ▼
-                    ┌──────────────┐
-                    │ Final Response│
-                    └──────────────┘
+```mermaid
+flowchart TD
+    %% USER INTERFACE
+    A[/"User Request (Web UI)"/] --> B["Central Orchestrator<br/>(Coordinates the entire flow<br/>with real-time updates)"]
+
+    %% MAIN BRANCH
+    B --> C["Capability Registry<br/>(Vector DB Search)"]
+    C -->|Tool Found? YES| D["Tool Executor<br/>(Dynamic Loading)"]
+    C -->|Tool Found? NO| E["Synthesis Engine<br/>(TDD Workflow)<br/>1. Generate Spec<br/>2. Generate Tests<br/>3. Implement Code<br/>4. Verify in Sandbox<br/>5. Register Tool"]
+
+    %% SYNTHESIS ENGINE & SANDBOX LOOP
+    E --> F["Secure Sandbox<br/>(Docker)"]
+    F --> E
+
+    %% TOOL EXECUTION FLOW
+    D --> G["Response Synthesizer<br/>(Natural Language)"]
+    E --> G
+
+    %% FINAL OUTPUT
+    G --> H["Final Response"]
+
+    %% STYLING
+    style A fill:#0f0f0f,stroke:#333,stroke-width:1px,color:#fff
+    style B fill:#111,stroke:#444,stroke-width:1px,color:#fff
+    style C fill:#1a1a1a,stroke:#444,stroke-width:1px,color:#fff
+    style D fill:#222,stroke:#444,stroke-width:1px,color:#fff
+    style E fill:#1a1a1a,stroke:#444,stroke-width:1px,color:#fff
+    style F fill:#111,stroke:#444,stroke-width:1px,color:#fff
+    style G fill:#0f0f0f,stroke:#333,stroke-width:1px,color:#fff
+    style H fill:#0a0a0a,stroke:#333,stroke-width:1px,color:#fff
+
 ```
 
 ## Key Features
@@ -279,35 +261,3 @@ pytest test_calculate_percentage.py -v
 - **Collaborative filtering**: Suggest tools based on usage patterns
 - **Export/Import**: Share tool libraries between instances
 - **Version control**: Track tool evolution over time
-
-## Contributing
-
-This is a demonstration framework. Key areas for contribution:
-
-1. Improving LLM prompts for better code generation
-2. Enhanced error handling and recovery
-3. Additional seed tools for common operations
-4. Performance optimizations
-5. Security enhancements
-
-## License
-
-This project is provided as-is for educational and research purposes.
-
-## Acknowledgments
-
-Built with:
-- **OpenAI GPT-4** for code generation
-- **ChromaDB** for vector similarity search
-- **Docker** for secure sandboxing
-- **Flask + Socket.IO** for real-time web interface
-- **pytest** for testing framework
-
-## Support
-
-For issues or questions:
-1. Check that Docker is running
-2. Verify your OpenAI API key is valid
-3. Ensure all dependencies are installed
-4. Check the activity log in the web UI for detailed error messages
-

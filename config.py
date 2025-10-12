@@ -12,8 +12,9 @@ class Config:
     OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
     OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4")
     
-    # Vector Database Configuration
-    CHROMA_PERSIST_DIR = os.getenv("CHROMA_PERSIST_DIR", "./chroma_db")
+    # Database Configuration
+    SUPABASE_URL = os.getenv("SUPABASE_URL", "")
+    SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
     SIMILARITY_THRESHOLD = float(os.getenv("SIMILARITY_THRESHOLD", "0.4"))
     
     # Docker Configuration
@@ -33,6 +34,10 @@ class Config:
         """Validate that required configuration is present"""
         if not cls.OPENAI_API_KEY:
             raise ValueError("OPENAI_API_KEY must be set in environment or .env file")
+        if not cls.SUPABASE_URL:
+            raise ValueError("SUPABASE_URL must be set in environment or .env file")
+        if not cls.SUPABASE_KEY:
+            raise ValueError("SUPABASE_KEY must be set in environment or .env file")
         return True
 
 
