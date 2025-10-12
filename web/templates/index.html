@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Self-Engineering Agent Framework</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1>Self-Engineering Agent Framework</h1>
+            <p class="subtitle">An autonomous agent that creates its own tools on demand</p>
+            <div class="stats">
+                <div class="stat-card">
+                    <span class="stat-label">Available Tools</span>
+                    <span class="stat-value" id="tool-count">0</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Status</span>
+                    <span class="stat-value status-indicator" id="status">Ready</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Query Input Section -->
+            <div class="query-section card">
+                <h2>Ask the Agent</h2>
+                <form id="query-form">
+                    <div class="input-group">
+                        <input 
+                            type="text" 
+                            id="user-prompt" 
+                            placeholder="What would you like me to do? (e.g., 'Calculate 15% of 300' or 'Reverse the string hello')"
+                            autocomplete="off"
+                        />
+                        <button type="submit" id="submit-btn">
+                            <span id="btn-text">Send</span>
+                            <span id="btn-loader" class="loader" style="display: none;"></span>
+                        </button>
+                    </div>
+                </form>
+                <div class="examples">
+                    <p>Try these examples:</p>
+                    <button class="example-btn" data-prompt="What is 25 percent of 80?">Calculate percentage</button>
+                    <button class="example-btn" data-prompt="Convert 100 degrees Fahrenheit to Celsius">Temperature conversion</button>
+                    <button class="example-btn" data-prompt="Reverse the string 'hello world'">Reverse string</button>
+                    <button class="example-btn" data-prompt="Calculate the factorial of 5">Calculate factorial</button>
+                </div>
+            </div>
+
+            <!-- Two Column Layout -->
+            <div class="content-grid">
+                <!-- Activity Log -->
+                <div class="activity-section card">
+                    <h2>Activity Log</h2>
+                    <div id="activity-log" class="activity-log">
+                        <div class="log-entry info">
+                            <span class="log-time">--:--:--</span>
+                            <span class="log-message">Waiting for your request...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Response Section -->
+                <div class="response-section card">
+                    <h2>Response</h2>
+                    <div id="response-container" class="response-container">
+                        <p class="placeholder">Your response will appear here...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Available Tools Section -->
+            <div class="tools-section card">
+                <h2>Available Tools</h2>
+                <div id="tools-list" class="tools-list">
+                    <p class="placeholder">Loading tools...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>Self-Engineering Agent Framework - A demonstration of autonomous capability synthesis</p>
+        </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
+
