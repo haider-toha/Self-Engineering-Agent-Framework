@@ -1,7 +1,9 @@
 def reverse_string(input_string: str) -> str:
     """
-    Reverses the order of characters in a given string. This function is useful for manipulating text data, such as in data preprocessing, encryption algorithms, or simply for creating a reversed version of a string. It takes a string as an input and returns a new string where the characters are in the opposite order. For example, reverse_string('hello world') would return 'dlrow olleh'. It handles both single and multi-word strings, as well as strings with special characters. Note that the function does not reverse the order of characters within each word, but the order of characters in the entire string. Examples: reverse_string('hello') returns 'olleh', reverse_string('hello world') returns 'dlrow olleh'.
+    Reverses the given input string. This function takes a string as input and returns a new string
+    with the characters in reverse order. It is useful for situations where you need to manipulate
+    or analyze strings in reverse, such as checking for palindromes or simply displaying text backwards.
     """
-    if not isinstance(input_string, str):
-        raise TypeError("Input must be a string")
+    if input_string is None:
+        raise TypeError("Input cannot be None")
     return input_string[::-1]
