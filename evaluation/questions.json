@@ -1,0 +1,284 @@
+{
+    "evaluation_dataset": [
+      {
+        "category_name": "Mathematical & Logical Reasoning",
+        "questions": [
+          {
+            "id": 1,
+            "question": "Derive the quadratic roots of \\( 3x^2 - 5x + 2 = 0 \\).",
+            "answer": "The roots are x = 1 and x = 2/3. Using the quadratic formula \\( x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a} \\), \\( x = \\frac{5 \\pm \\sqrt{(-5)^2 - 4 \\cdot 3 \\cdot 2}}{2 \\cdot 3} = \\frac{5 \\pm \\sqrt{25 - 24}}{6} = \\frac{5 \\pm 1}{6} \\). This gives \\( x_1 = 6/6 = 1 \\) and \\( x_2 = 4/6 = 2/3 \\)."
+          },
+          {
+            "id": 2,
+            "question": "Given a sequence [2, 4, 8, 16, 32], predict the next two terms and explain the pattern.",
+            "answer": "Next terms: 64, 128. The pattern is a geometric progression where each term is the previous term multiplied by 2 (or \\( 2^n \\) where n starts at 1)."
+          },
+          {
+            "id": 3,
+            "question": "A train travels 120 km in 2 hours. If speed increases by 25%, how long will it take to cover 240 km?",
+            "answer": "3.2 hours (or 3 hours and 12 minutes). Initial speed = 120 km / 2 h = 60 km/h. New speed = 60 * 1.25 = 75 km/h. Time = 240 km / 75 km/h = 3.2 hours."
+          },
+          {
+            "id": 4,
+            "question": "Simplify the expression \\( (2x^3)^2 / (4x^2) \\).",
+            "answer": "x^4. \\( (2x^3)^2 = 4x^6 \\). Then, \\( (4x^6) / (4x^2) = (4/4) \\cdot x^{(6-2)} = x^4 \\)."
+          },
+          {
+            "id": 5,
+            "question": "Compute the determinant of the matrix \\(\\begin{bmatrix}3 & 4 \\\\ 2 & 5\\end{bmatrix}\\).",
+            "answer": "7. Determinant (ad - bc) = (3 * 5) - (4 * 2) = 15 - 8 = 7."
+          },
+          {
+            "id": 6,
+            "question": "Solve for x: \\( 5x - 3 = 2x + 12 \\).",
+            "answer": "x = 5. \\( 5x - 2x = 12 + 3 \\) -> \\( 3x = 15 \\) -> \\( x = 5 \\)."
+          },
+          {
+            "id": 7,
+            "question": "If the probability of rain is 0.4 and of wind is 0.3, what’s the probability of both (assuming independence)?",
+            "answer": "0.12 (or 12%). For independent events, P(A and B) = P(A) * P(B). 0.4 * 0.3 = 0.12."
+          },
+          {
+            "id": 8,
+            "question": "Convert 0.625 into a fraction and simplify.",
+            "answer": "5/8. \\( 0.625 = 625 / 1000 \\). Simplify by dividing by 125."
+          },
+          {
+            "id": 9,
+            "question": "Find the derivative of \\( f(x) = 4x^3 - 2x^2 + x - 7 \\).",
+            "answer": "\\( f'(x) = 12x^2 - 4x + 1 \\)"
+          },
+          {
+            "id": 10,
+            "question": "Prove that the sum of the first n odd numbers equals \\( n^2 \\).",
+            "answer": "Proof by Induction: Base Case (n=1): Sum = 1. \\( 1^2 = 1 \\). True. Inductive Hypothesis: Assume \\( 1 + 3 + ... + (2k-1) = k^2 \\). Inductive Step: Show \\( 1 + ... + (2k-1) + (2(k+1)-1) = (k+1)^2 \\). Substitute hypothesis: \\( k^2 + (2k + 2 - 1) = k^2 + 2k + 1 = (k+1)^2 \\). Q.E.D."
+          }
+        ]
+      },
+      {
+        "category_name": "Data & Code Understanding",
+        "questions": [
+          {
+            "id": 11,
+            "question": "Given a Python list `[1,2,3,4,5]`, write one line of code to square all elements.",
+            "answer": "`squared_list = [x**2 for x in [1,2,3,4,5]]`"
+          },
+          {
+            "id": 12,
+            "question": "What is the output of this snippet?\n```python\na = [1,2,3]\nb = a\nb.append(4)\nprint(a)\n```",
+            "answer": "`[1, 2, 3, 4]`. `b = a` assigns `b` as a reference to the same list object. Modifying `b` also modifies `a`."
+          },
+          {
+            "id": 13,
+            "question": "Explain what a Python generator is and when to use one.",
+            "answer": "A generator is an iterator created using a function with the `yield` keyword. It lazily evaluates values, producing items one at a time on request. Use it for very large datasets or infinite sequences to save memory."
+          },
+          {
+            "id": 14,
+            "question": "You have a CSV with missing values — outline 3 ways to handle them.",
+            "answer": "1. Deletion: Remove rows or columns with missing values. 2. Mean/Median/Mode Imputation: Fill missing values with the mean (numerical), median (numerical), or mode (categorical) of the column. 3. Predictive Imputation: Use a model (e.g., k-NN) to predict the missing value based on other features."
+          },
+          {
+            "id": 15,
+            "question": "In SQL, what is the difference between `INNER JOIN` and `LEFT JOIN`?",
+            "answer": "`INNER JOIN`: Returns only rows with matching values in both tables. `LEFT JOIN`: Returns all rows from the left table, and matched rows from the right table (or NULL if no match)."
+          },
+          {
+            "id": 16,
+            "question": "What’s the time complexity of searching an element in a balanced binary search tree?",
+            "answer": "O(log n)."
+          },
+          {
+            "id": 17,
+            "question": "Given the string `\"abac\"`, generate all unique permutations.",
+            "answer": "`aabc`, `aacb`, `abac`, `abca`, `acab`, `acba`, `baac`, `baca`, `bcaa`, `caab`, `caba`, `cbaa`"
+          },
+          {
+            "id": 18,
+            "question": "Write a regex that matches valid email addresses.",
+            "answer": "`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$`"
+          },
+          {
+            "id": 19,
+            "question": "Explain what happens when you run `git rebase main`.",
+            "answer": "Assuming you are on a feature branch, it finds the common ancestor with `main`, moves your branch's new commits aside, updates your branch to the latest `main` commit, and re-applies your commits on top, rewriting your branch's history."
+          },
+          {
+            "id": 20,
+            "question": "Convert a dictionary `{'a':1,'b':2}` into a list of tuples using Python.",
+            "answer": "`list({'a':1,'b':2}.items())` which results in `[('a', 1), ('b', 2)]`"
+          }
+        ]
+      },
+      {
+        "category_name": "Linguistic & Semantic Analysis",
+        "questions": [
+          {
+            "id": 21,
+            "question": "Generate three synonyms for “robust” and use each in a sentence.",
+            "answer": "1. Sturdy: The oak table was very sturdy. 2. Durable: They build the phone with durable materials. 3. Resilient: The local economy proved resilient after the flood."
+          },
+          {
+            "id": 22,
+            "question": "Identify the sentiment of: “The movie started slow but ended brilliantly.”",
+            "answer": "Mixed, but primarily Positive. It contains negative ('started slow') and strong positive ('ended brilliantly') elements."
+          },
+          {
+            "id": 23,
+            "question": "Rewrite this passive sentence in active voice: “The experiment was conducted by the students.”",
+            "answer": "\"The students conducted the experiment.\""
+          },
+          {
+            "id": 24,
+            "question": "Extract all nouns from: “The quick brown fox jumps over the lazy dog.”",
+            "answer": "fox, dog"
+          },
+          {
+            "id": 25,
+            "question": "Translate “knowledge is power” into French.",
+            "answer": "\"Savoir est pouvoir.\" or \"La connaissance est le pouvoir.\""
+          },
+          {
+            "id": 26,
+            "question": "Detect ambiguity in the sentence: “I saw the man with the telescope.”",
+            "answer": "Structural ambiguity. 1. Who has the telescope? \"I saw the man [who was holding the telescope].\" 2. How was he seen? \"I [used the telescope to] see the man.\""
+          },
+          {
+            "id": 27,
+            "question": "Summarize this in one line: “Despite early setbacks, the company achieved record profits in Q4.”",
+            "answer": "The company achieved record Q4 profits despite a difficult start."
+          },
+          {
+            "id": 28,
+            "question": "Classify the word “running” as noun, verb, or adjective in “Running is fun.”",
+            "answer": "Noun (a gerund, functioning as the subject of the sentence)."
+          },
+          {
+            "id": 29,
+            "question": "Generate an antonym for “artificial” and use both in a sentence.",
+            "answer": "Antonym: Natural. Sentence: \"The artificial flowers looked almost as good as the natural ones.\""
+          },
+          {
+            "id": 30,
+            "question": "Identify the rhetorical device in: “She’s as busy as a bee.”",
+            "answer": "Simile (a comparison using 'as' or 'like')."
+          }
+        ]
+      },
+      {
+        "category_name": "Real-World Context & Commonsense Reasoning",
+        "questions": [
+          {
+            "id": 31,
+            "question": "If a store offers 20% off a $50 item and you have a $10 coupon, what’s the final price?",
+            "answer": "$30. Assuming the 20% discount is applied first: $50 * (1 - 0.20) = $40. Then $40 - $10 (coupon) = $30."
+          },
+          {
+            "id": 32,
+            "question": "Explain why an airplane wing is shaped to produce lift.",
+            "answer": "Due to the airfoil shape and Bernoulli's Principle. The wing's curved upper surface forces air to travel faster than the air on the flatter bottom. Faster air exerts lower pressure, creating a pressure difference (higher pressure below, lower above) that results in lift."
+          },
+          {
+            "id": 33,
+            "question": "If it’s 5 PM in New York, what time is it in London?",
+            "answer": "10 PM in London. New York (e.g., EDT, UTC-4) is 5 hours behind London (e.g., BST, UTC+1). (This 5-hour difference holds true in winter: EST UTC-5 vs GMT UTC+0)."
+          },
+          {
+            "id": 34,
+            "question": "Suggest three sustainable practices for reducing household energy consumption.",
+            "answer": "1. Improve Insulation: Add insulation to attics/walls to reduce heat loss/gain. 2. Use Efficient Lighting: Switch all bulbs to LEDs. 3. Install a Smart Thermostat: Optimize heating and cooling schedules."
+          },
+          {
+            "id": 35,
+            "question": "A person drives north for 10 km, east for 10 km, then south for 10 km. Where are they relative to the start?",
+            "answer": "10 km East of the starting point. The North and South movements cancel out."
+          },
+          {
+            "id": 36,
+            "question": "You need to plan a 2-day trip for 4 people to a nearby city — what steps would you take?",
+            "answer": "1. Align Budget & Dates: Confirm budget and a 2-day period. 2. Book Accommodation: Secure lodging (e.g., hotel, Airbnb). 3. Book Transportation: Arrange travel (e.g., car, train). 4. Create Itinerary: Research and book 2-3 key activities. 5. Plan Food: Make reservations for 1-2 group dinners."
+          },
+          {
+            "id": 37,
+            "question": "Why does ice float on water?",
+            "answer": "Ice (solid water) is less dense than liquid water. When water freezes, its molecules form a crystalline lattice that holds them farther apart, increasing volume and decreasing density."
+          },
+          {
+            "id": 38,
+            "question": "If a phone battery drains 20% per hour, how long will it last from 100% to 0%?",
+            "answer": "5 hours. 100% / (20% per hour) = 5 hours."
+          },
+          {
+            "id": 39,
+            "question": "Recommend an algorithm to schedule 10 tasks with dependencies efficiently.",
+            "answer": "Topological Sort. It finds a linear ordering of tasks in a Directed Acyclic Graph (DAG) where each task comes before all tasks that depend on it."
+          },
+          {
+            "id": 40,
+            "question": "Explain why blockchain is considered tamper-resistant.",
+            "answer": "Due to cryptography and decentralization. 1. Cryptographic Chain: Each block contains a hash of the previous one. Changing data breaks the chain. 2. Decentralization: The ledger is copied across many nodes; an attacker needs to control >51% of the network to rewrite history."
+          }
+        ]
+      },
+      {
+        "category_name": "Multi-Step Planning & Reasoning",
+        "questions": [
+          {
+            "id": 41,
+            "question": "Given two sorted lists, describe an algorithm to merge them into one sorted list.",
+            "answer": "Use the 'Two Pointers' algorithm. 1. Initialize pointers i and j at the start of List A and B. 2. Create an empty merged_list. 3. While i and j are within bounds, compare A[i] and B[j]. Append the smaller element to merged_list and increment its pointer. 4. Once one list is exhausted, append all remaining elements from the other list."
+          },
+          {
+            "id": 42,
+            "question": "Plan a Python script to fetch, clean, and plot weather data from an API.",
+            "answer": "1. Import `requests`, `pandas`, `matplotlib.pyplot`. 2. Fetch: Use `requests.get()` with the API URL. 3. Parse & Clean: Check status code 200. Load `response.json()` into a `pandas` DataFrame. Convert date strings to datetime objects. 4. Plot: Use `plt.plot(df['date'], df['temperature'])`. 5. Finalize: Add labels (`plt.xlabel`, `plt.title`) and call `plt.show()`."
+          },
+          {
+            "id": 43,
+            "question": "Given 1000 log entries with timestamps, design a way to detect anomalies in request frequency.",
+            "answer": "1. Parse & Aggregate: Read logs and parse timestamps. 2. Time Binning: Count requests in fixed time buckets (e.g., per minute). 3. Establish Baseline: Calculate the mean (μ) and standard deviation (σ) of counts. 4. Anomaly Detection: Flag any bucket as an anomaly if its count exceeds a threshold, such as μ + 3σ (3-Sigma Rule)."
+          },
+          {
+            "id": 44,
+            "question": "Explain how you would design a chatbot that can book flights and answer questions about itineraries.",
+            "answer": "1. NLU: Use a service (e.g., Dialogflow) to define Intents (e.g., `book_flight`) and Entities (e.g., `departure_city`, `date`). 2. Dialog Management: For `book_flight`, prompt the user for any missing entities (slot filling). 3. Backend Logic: When slots are filled, call a third-party Flight API. To answer questions, query a database using a booking number. 4. State Management: Maintain context (collected entities) in a cache."
+          },
+          {
+            "id": 45,
+            "question": "You have a budget of $10,000 to increase a website’s traffic by 20%. Outline your strategy.",
+            "answer": "1. Paid Acquisition ($5,000): Use Google/Social Media Ads for immediate, targeted traffic. 2. Content Marketing/SEO ($3,500): Produce 5-10 high-quality, keyword-optimized blog posts for long-term organic growth. 3. Promotion & Analytics ($1,500): Promote content on social media and ensure analytics are set up to track ROI."
+          }
+        ]
+      },
+      {
+        "category_name": "Edge & Robustness / Stress Tests",
+        "questions": [
+          {
+            "id": 46,
+            "question": "What happens if you divide by zero in Python?",
+            "answer": "It raises a `ZeroDivisionError` exception at runtime."
+          },
+          {
+            "id": 47,
+            "question": "Predict the behavior of this function for `n=-1`:\n```python\ndef factorial(n):\n    return 1 if n<=1 else n*factorial(n-1)\n```",
+            "answer": "It will return 1. The condition `n <= 1` (i.e., `-1 <= 1`) is True, so it returns 1 immediately without recursion."
+          },
+          {
+            "id": 48,
+            "question": "How would you handle an API that sometimes returns malformed JSON?",
+            "answer": "Wrap the JSON parsing in a `try...except` block. `try` to call `response.json()`. `except` a `JSONDecodeError`, log the error and `response.text`, and then either retry the request or return a default/error value."
+          },
+          {
+            "id": 49,
+            "question": "Describe how to test an AI model for bias in outputs.",
+            "answer": "1. Create Counterfactual Datasets: Swap sensitive attributes (e.g., gender, race) while keeping other data the same. 2. Measure Disaggregated Performance: Measure key metrics (e.g., False Positive Rate) for each subgroup independently. 3. Test Language Models: Use neutral prompts and analyze the statistical distribution of outputs (e.g., pronoun association)."
+          },
+          {
+            "id": 50,
+            "question": "Suggest improvements for a system that frequently times out under heavy load.",
+            "answer": "1. Caching: Use a cache (e.g., Redis) for common query results. 2. Asynchronous Processing: Move slow tasks (e.g., sending emails) to a message queue. 3. Load Balancing: Distribute requests across multiple (horizontally scaled) instances of the application."
+          }
+        ]
+      }
+    ]
+  }
