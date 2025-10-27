@@ -162,17 +162,28 @@ class WorkflowTracker:
             print(f"Warning: Failed to update tool relationship: {str(e)}")
     
     def _analyze_session_patterns(self):
-        """Analyze current session for workflow patterns"""
+        """
+        Analyze current session for workflow patterns with enhanced pattern mining.
+        Detects full sequences, subsequences, and common prefixes/suffixes.
+        """
         if len(self.session_tools) < 2:
             return
         
         # Extract tool sequence
         tool_sequence = [tool["tool_name"] for tool in self.session_tools]
         
-        # Check if this pattern exists
+        # Mine patterns at different granularities
+        self._mine_full_sequence_pattern(tool_sequence)
+        self._mine_pairwise_relationships(tool_sequence)
+        
+        # For longer sequences, mine subsequences
+        if len(tool_sequence) >= 3:
+            self._mine_subsequence_patterns(tool_sequence)
+    
+    def _mine_full_sequence_pattern(self, tool_sequence: List[str]):
+        """Mine and update the complete sequence pattern"""
         try:
             # Search for existing pattern with matching tool sequence
-            # Note: We need to compare arrays properly in PostgreSQL
             all_patterns = self.supabase.table("workflow_patterns").select("*").execute()
             
             existing_pattern = None
@@ -182,32 +193,38 @@ class WorkflowTracker:
                         existing_pattern = pattern
                         break
             
-            result = type('obj', (object,), {'data': [existing_pattern] if existing_pattern else []})()
-
+            # Calculate session metrics
+            successful_tools = sum(1 for tool in self.session_tools if tool["success"])
+            session_success_rate = successful_tools / len(self.session_tools)
+            session_duration_ms = int((time.time() - self.session_start_time) * 1000) if self.session_start_time else 0
             
-            if result.data:
+            if existing_pattern:
                 # Update existing pattern
-                pattern = result.data[0]
+                pattern = existing_pattern
                 new_frequency = pattern["frequency"] + 1
                 
-                # Calculate success rate
-                successful_tools = sum(1 for tool in self.session_tools if tool["success"])
-                session_success_rate = successful_tools / len(self.session_tools)
+                # Update average success rate (exponential moving average with alpha=0.3)
+                alpha = 0.3
+                new_success_rate = alpha * session_success_rate + (1 - alpha) * pattern["avg_success_rate"]
                 
-                # Update average success rate
-                new_success_rate = (
-                    (pattern["avg_success_rate"] * pattern["frequency"] + session_success_rate) / 
-                    new_frequency
-                )
+                # Update average execution time
+                old_avg_time = pattern.get("avg_execution_time_ms", 0)
+                new_avg_time = (old_avg_time * pattern["frequency"] + session_duration_ms) / new_frequency
                 
                 # Update sessions list
                 sessions = pattern.get("user_sessions", []) or []
                 if self.current_session_id not in sessions:
                     sessions.append(self.current_session_id)
                 
+                # Calculate confidence score (frequency × success rate × recency factor)
+                recency_factor = min(1.0, new_frequency / 10.0)  # Caps at 10 uses
+                confidence = min(0.95, new_success_rate * recency_factor)
+                
                 self.supabase.table("workflow_patterns").update({
                     "frequency": new_frequency,
                     "avg_success_rate": new_success_rate,
+                    "avg_execution_time_ms": new_avg_time,
+                    "confidence_score": confidence,
                     "user_sessions": sessions,
                     "last_seen": datetime.now().isoformat()
                 }).eq("id", pattern["id"]).execute()
@@ -215,14 +232,14 @@ class WorkflowTracker:
             else:
                 # Create new pattern
                 pattern_name = "_to_".join(tool_sequence)
-                successful_tools = sum(1 for tool in self.session_tools if tool["success"])
-                success_rate = successful_tools / len(self.session_tools)
                 
                 pattern_data = {
                     "pattern_name": pattern_name,
                     "tool_sequence": tool_sequence,
                     "frequency": 1,
-                    "avg_success_rate": success_rate,
+                    "avg_success_rate": session_success_rate,
+                    "avg_execution_time_ms": session_duration_ms,
+                    "confidence_score": 0.5,  # Initial confidence for new patterns
                     "user_sessions": [self.current_session_id],
                     "complexity_score": len(tool_sequence),
                     "description": f"Workflow pattern: {' -> '.join(tool_sequence)}"
@@ -231,7 +248,84 @@ class WorkflowTracker:
                 self.supabase.table("workflow_patterns").insert(pattern_data).execute()
                 
         except Exception as e:
-            print(f"Warning: Failed to analyze session patterns: {str(e)}")
+            print(f"Warning: Failed to mine full sequence pattern: {str(e)}")
+    
+    def _mine_pairwise_relationships(self, tool_sequence: List[str]):
+        """Mine relationships between consecutive tool pairs"""
+        for i in range(len(tool_sequence) - 1):
+            tool_a = tool_sequence[i]
+            tool_b = tool_sequence[i + 1]
+            
+            # Check if both tools were successful
+            success = (self.session_tools[i]["success"] and 
+                      self.session_tools[i + 1]["success"])
+            
+            self._update_tool_relationship(tool_a, tool_b, success)
+    
+    def _mine_subsequence_patterns(self, tool_sequence: List[str]):
+        """
+        Mine common subsequence patterns (sliding windows).
+        Useful for detecting reusable sub-workflows.
+        """
+        try:
+            # Mine 2-gram and 3-gram subsequences
+            for window_size in [2, 3]:
+                if len(tool_sequence) < window_size:
+                    continue
+                
+                for i in range(len(tool_sequence) - window_size + 1):
+                    subsequence = tool_sequence[i:i + window_size]
+                    
+                    # Calculate success for this subsequence
+                    subseq_tools = self.session_tools[i:i + window_size]
+                    success_count = sum(1 for t in subseq_tools if t["success"])
+                    success_rate = success_count / len(subseq_tools)
+                    
+                    # Store or update subsequence pattern
+                    self._update_subsequence_pattern(subsequence, success_rate)
+                    
+        except Exception as e:
+            print(f"Warning: Failed to mine subsequence patterns: {str(e)}")
+    
+    def _update_subsequence_pattern(self, subsequence: List[str], success_rate: float):
+        """Update frequency tracking for a subsequence pattern"""
+        try:
+            pattern_name = f"sub_{'-'.join(subsequence)}"
+            
+            # Try to find existing subsequence pattern
+            all_patterns = self.supabase.table("workflow_patterns").select("*").eq(
+                "pattern_name", pattern_name
+            ).execute()
+            
+            if all_patterns.data:
+                # Update existing
+                pattern = all_patterns.data[0]
+                new_freq = pattern["frequency"] + 1
+                alpha = 0.3
+                new_success = alpha * success_rate + (1 - alpha) * pattern["avg_success_rate"]
+                
+                self.supabase.table("workflow_patterns").update({
+                    "frequency": new_freq,
+                    "avg_success_rate": new_success,
+                    "last_seen": datetime.now().isoformat()
+                }).eq("id", pattern["id"]).execute()
+            else:
+                # Create new subsequence pattern
+                pattern_data = {
+                    "pattern_name": pattern_name,
+                    "tool_sequence": subsequence,
+                    "frequency": 1,
+                    "avg_success_rate": success_rate,
+                    "confidence_score": 0.3,  # Lower initial confidence for subsequences
+                    "user_sessions": [self.current_session_id],
+                    "complexity_score": len(subsequence),
+                    "description": f"Subsequence pattern: {' -> '.join(subsequence)}"
+                }
+                
+                self.supabase.table("workflow_patterns").insert(pattern_data).execute()
+                
+        except Exception as e:
+            print(f"Warning: Failed to update subsequence pattern: {str(e)}")
     
     def get_tool_relationships(
         self,

@@ -3,6 +3,8 @@ Agent Orchestrator - Central decision-making component that coordinates all subs
 """
 
 import time
+import hashlib
+import json
 from typing import Dict, Any, Optional, Callable
 from src.capability_registry import CapabilityRegistry
 from src.synthesis_engine import CapabilitySynthesisEngine
@@ -13,6 +15,11 @@ from src.sandbox import SecureSandbox
 from src.workflow_tracker import WorkflowTracker
 from src.query_planner import QueryPlanner
 from src.composition_planner import CompositionPlanner
+
+# NEW: Self-learning components
+from src.policy_store import PolicyStore
+from src.skill_graph import SkillGraph
+from src.reflection_engine import ReflectionEngine
 
 
 class AgentOrchestrator:
@@ -74,6 +81,19 @@ class AgentOrchestrator:
             executor=self.executor,
             llm_client=llm_client
         )
+        
+        # NEW: Initialize self-learning components
+        self.policy_store = PolicyStore()
+        self.skill_graph = SkillGraph()
+        self.reflection_engine = ReflectionEngine(
+            llm_client=llm_client,
+            sandbox=sandbox,
+            registry=self.registry
+        )
+        
+        # Store shared components for reflection engine
+        self.llm_client = llm_client
+        self.sandbox = sandbox
     
     def process_request(
         self,
@@ -124,7 +144,8 @@ class AgentOrchestrator:
                     execution_plan['composite_tool'],
                     user_prompt,
                     emit,
-                    start_time
+                    start_time,
+                    callback
                 )
             
             elif strategy == 'workflow_pattern':
@@ -133,7 +154,8 @@ class AgentOrchestrator:
                     execution_plan['pattern'],
                     user_prompt,
                     emit,
-                    start_time
+                    start_time,
+                    callback
                 )
             
             elif strategy in ['multi_tool_composition', 'multi_tool_sequential']:
@@ -142,7 +164,8 @@ class AgentOrchestrator:
                     execution_plan,
                     user_prompt,
                     emit,
-                    start_time
+                    start_time,
+                    callback
                 )
             
             else:
@@ -150,7 +173,8 @@ class AgentOrchestrator:
                 return self._execute_single_tool(
                     user_prompt,
                     emit,
-                    start_time
+                    start_time,
+                    callback
                 )
         
         except Exception as e:
@@ -170,14 +194,25 @@ class AgentOrchestrator:
         self,
         user_prompt: str,
         emit: Callable,
-        start_time: float
+        start_time: float,
+        callback: Optional[Callable] = None
     ) -> Dict[str, Any]:
-        """Execute a single tool (original behavior)"""
+        """Execute a single tool (original behavior with caching and reflection)"""
         try:
-            # Search for existing capability
+            # NEW: Get policy-driven threshold
+            threshold_policy = self.policy_store.get_policy(
+                "retrieval_similarity_threshold",
+                default={"threshold": 0.4, "rerank": True}
+            )
+            
+            # Search for existing capability with policy-driven settings
             emit("searching", {"query": user_prompt})
             
-            tool_info = self.registry.search_tool(user_prompt)
+            tool_info = self.registry.search_tool(
+                user_prompt,
+                threshold=threshold_policy.get("threshold", 0.4),
+                rerank=threshold_policy.get("rerank", True)
+            )
             
             # Step 2a: If a tool is found, try to execute it
             if tool_info:
@@ -186,8 +221,32 @@ class AgentOrchestrator:
                     "similarity": tool_info['similarity_score']
                 })
                 
-                emit("executing", {"tool_name": tool_info['name']})
+                # NEW: Extract arguments for cache key
+                signature = self.executor.extract_function_signature(tool_info['code'])
+                arguments = self.llm_client.extract_arguments(user_prompt, signature)
                 
+                # NEW: Check cache before execution
+                cached_result = self.skill_graph.check_cache(tool_info['name'], arguments)
+                if cached_result:
+                    emit("cache_hit", {"tool": tool_info['name']})
+                    
+                    # Use cached result
+                    final_response = self.synthesizer.synthesize(user_prompt, cached_result)
+                    self.workflow_tracker.end_session()
+                    
+                    return {
+                        "success": True,
+                        "result": cached_result,
+                        "response": final_response,
+                        "tool_name": tool_info['name'],
+                        "cached": True,
+                        "execution_time": 0
+                    }
+                
+                emit("executing", {"tool_name": tool_info['name']})
+                exec_start = time.time()
+                
+                # Execute with pre-extracted arguments
                 execution_result = self.executor.execute_with_retry(
                     tool_info=tool_info,
                     user_prompt=user_prompt
@@ -196,12 +255,20 @@ class AgentOrchestrator:
                 # If execution is successful, we are done
                 if execution_result['success']:
                     tool_result = execution_result['result']
+                    execution_time_ms = int((time.time() - exec_start) * 1000)
+                    
+                    # NEW: Cache the result
+                    self.skill_graph.cache_result(
+                        tool_info['name'],
+                        arguments,
+                        tool_result,
+                        execution_time_ms
+                    )
                     
                     # Log execution
-                    execution_time_ms = int((time.time() - start_time) * 1000)
                     self.workflow_tracker.log_execution(
                         tool_name=tool_info['name'],
-                        inputs=execution_result.get('arguments', {}),
+                        inputs=arguments,
                         outputs=tool_result,
                         success=True,
                         execution_time_ms=execution_time_ms,
@@ -235,16 +302,45 @@ class AgentOrchestrator:
                     })
                     tool_info = None  # Invalidate the found tool to trigger synthesis
                 
-                # For any other execution error, fail the request
+                # For any other execution error, trigger reflection
                 else:
                     error = execution_result['error']
-                    emit("execution_failed", {"error": error})
+                    emit("execution_failed", {"tool": tool_info['name'], "error": error})
+                    
+                    # NEW: Trigger reflection on failure
+                    try:
+                        analysis = self.reflection_engine.analyze_failure(
+                            tool_name=tool_info['name'],
+                            error_message=error,
+                            inputs=arguments,
+                            user_prompt=user_prompt
+                        )
+                        
+                        emit("reflection_created", {
+                            "reflection_id": analysis.get("reflection_id"),
+                            "root_cause": analysis.get("root_cause", "Unknown")
+                        })
+                    except Exception as reflection_error:
+                        print(f"Reflection failed: {reflection_error}")
+                    
+                    # Log failed execution
+                    self.workflow_tracker.log_execution(
+                        tool_name=tool_info['name'],
+                        inputs=arguments,
+                        outputs=None,
+                        success=False,
+                        execution_time_ms=int((time.time() - exec_start) * 1000),
+                        user_prompt=user_prompt
+                    )
+                    
                     error_response = self.synthesizer.synthesize_error(user_prompt, error)
+                    self.workflow_tracker.end_session()
+                    
                     return {
                         "success": False,
                         "response": error_response,
                         "error": error,
-                        "tool_name": tool_info.get('name') if tool_info else 'unknown'
+                        "tool_name": tool_info['name']
                     }
 
             # Step 2b: If no tool was found OR it was a mismatch, enter synthesis mode
@@ -340,7 +436,8 @@ class AgentOrchestrator:
         composite_tool: Dict[str, Any],
         user_prompt: str,
         emit: Callable,
-        start_time: float
+        start_time: float,
+        callback: Optional[Callable] = None
     ) -> Dict[str, Any]:
         """Execute an existing composite tool"""
         emit("using_composite_tool", {
@@ -353,7 +450,7 @@ class AgentOrchestrator:
         tool_info = self.registry.get_tool_by_name(composite_tool['tool_name'])
         
         if not tool_info:
-            return self._execute_single_tool(user_prompt, emit, start_time)
+            return self._execute_single_tool(user_prompt, emit, start_time, callback)
         
         # Execute the composite tool
         execution_result = self.executor.execute_with_retry(
@@ -386,14 +483,15 @@ class AgentOrchestrator:
             }
         else:
             # Fallback to single tool execution
-            return self._execute_single_tool(user_prompt, emit, start_time)
+            return self._execute_single_tool(user_prompt, emit, start_time, callback)
     
     def _execute_workflow_pattern(
         self,
         pattern: Dict[str, Any],
         user_prompt: str,
         emit: Callable,
-        start_time: float
+        start_time: float,
+        callback: Optional[Callable] = None
     ) -> Dict[str, Any]:
         """Execute a known workflow pattern"""
         emit("using_workflow_pattern", {
@@ -439,14 +537,15 @@ class AgentOrchestrator:
             }
         else:
             # Fallback
-            return self._execute_single_tool(user_prompt, emit, start_time)
+            return self._execute_single_tool(user_prompt, emit, start_time, callback)
     
     def _execute_multi_tool_workflow(
         self,
         execution_plan: Dict[str, Any],
         user_prompt: str,
         emit: Callable,
-        start_time: float
+        start_time: float,
+        callback: Optional[Callable] = None
     ) -> Dict[str, Any]:
         """Execute a multi-tool workflow"""
         sub_tasks = execution_plan['analysis']['sub_tasks']

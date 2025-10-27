@@ -121,13 +121,14 @@ class CapabilityRegistry:
         else:
             raise Exception(f"Failed to add tool to database: {result}")
     
-    def search_tool(self, query: str, threshold: float = None) -> Optional[Dict[str, Any]]:
+    def search_tool(self, query: str, threshold: float = None, rerank: bool = True) -> Optional[Dict[str, Any]]:
         """
-        Search for a tool using semantic similarity
+        Search for a tool using semantic similarity with optional re-ranking
         
         Args:
             query: Natural language query
             threshold: Minimum similarity score (0-1), defaults to Config.SIMILARITY_THRESHOLD
+            rerank: Whether to re-rank results by usage statistics (default True)
             
         Returns:
             Tool information dictionary if found above threshold, None otherwise
@@ -143,14 +144,20 @@ class CapabilityRegistry:
             {
                 'query_embedding': query_embedding,
                 'similarity_threshold': threshold,
-                'match_count': 1
+                'match_count': 5 if rerank else 1  # Get more candidates for re-ranking
             }
         ).execute()
         
         if not result.data:
             return None
         
-        tool_data = result.data[0]
+        candidates = result.data
+        
+        # Re-rank based on usage statistics if requested
+        if rerank and len(candidates) > 1:
+            candidates = self._rerank_tools(candidates)
+        
+        tool_data = candidates[0]
         
         # Load the tool code
         try:
@@ -171,6 +178,107 @@ class CapabilityRegistry:
             "timestamp": tool_data['created_at'],
             "similarity_score": tool_data.get('similarity', 0)
         }
+    
+    def _rerank_tools(self, candidates: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Re-rank tool candidates based on usage statistics and success rates
+        
+        Args:
+            candidates: List of candidate tools with similarity scores
+            
+        Returns:
+            Re-ranked list of candidates
+        """
+        # Get usage statistics for each candidate
+        for candidate in candidates:
+            tool_name = candidate['name']
+            
+            # Query execution statistics
+            try:
+                stats_result = self.supabase.table("tool_executions").select(
+                    "success"
+                ).eq("tool_name", tool_name).order("timestamp", desc=True).limit(50).execute()
+                
+                if stats_result.data:
+                    executions = stats_result.data
+                    success_count = sum(1 for ex in executions if ex['success'])
+                    success_rate = success_count / len(executions)
+                    frequency = len(executions)
+                else:
+                    success_rate = 0.5  # Neutral prior for new tools
+                    frequency = 0
+            except Exception:
+                success_rate = 0.5
+                frequency = 0
+            
+            # Compute combined score
+            similarity = candidate.get('similarity', 0)
+            
+            # Weighted combination: similarity (70%), success rate (20%), frequency boost (10%)
+            frequency_boost = min(frequency / 10.0, 1.0)  # Cap at 10 uses
+            combined_score = (0.7 * similarity + 
+                            0.2 * success_rate + 
+                            0.1 * frequency_boost)
+            
+            candidate['combined_score'] = combined_score
+            candidate['success_rate'] = success_rate
+            candidate['usage_count'] = frequency
+        
+        # Sort by combined score
+        candidates.sort(key=lambda x: x.get('combined_score', 0), reverse=True)
+        
+        return candidates
+    
+    def search_tools_batch(self, query: str, threshold: float = None, limit: int = 5) -> List[Dict[str, Any]]:
+        """
+        Search for multiple matching tools
+        
+        Args:
+            query: Natural language query
+            threshold: Minimum similarity score (0-1)
+            limit: Maximum number of results to return
+            
+        Returns:
+            List of tool information dictionaries
+        """
+        threshold = threshold or Config.SIMILARITY_THRESHOLD
+        
+        # Generate embedding for query
+        query_embedding = self._generate_embedding(query)
+        
+        # Search for similar tools
+        result = self.supabase.rpc(
+            'search_tools', 
+            {
+                'query_embedding': query_embedding,
+                'similarity_threshold': threshold,
+                'match_count': limit
+            }
+        ).execute()
+        
+        if not result.data:
+            return []
+        
+        tools = []
+        for tool_data in result.data:
+            # Load the tool code
+            try:
+                with open(tool_data['file_path'], 'r', encoding='utf-8') as f:
+                    code = f.read()
+                    
+                tools.append({
+                    "name": tool_data['name'],
+                    "code": code,
+                    "file_path": tool_data['file_path'],
+                    "test_path": tool_data['test_path'],
+                    "docstring": tool_data['docstring'],
+                    "timestamp": tool_data['created_at'],
+                    "similarity_score": tool_data.get('similarity', 0)
+                })
+            except FileNotFoundError:
+                continue
+        
+        return tools
     
     def get_tool_by_name(self, name: str) -> Optional[Dict[str, Any]]:
         """
