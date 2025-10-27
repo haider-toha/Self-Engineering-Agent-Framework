@@ -166,6 +166,93 @@ function handleAgentEvent(eventType, data) {
         case 'error':
             addLog('error', `Error: ${data.error}`);
             break;
+        
+        // Workflow & Composition Events
+        case 'planning_query':
+            addLog('info', '🧠 Analyzing query complexity...');
+            break;
+        
+        case 'plan_complete':
+            addLog('success', `📋 Execution plan: ${data.strategy} - ${data.reasoning}`);
+            break;
+        
+        case 'using_composite_tool':
+            addLog('success', `⚡ Using composite tool: ${data.tool_name}`);
+            addLog('info', `   Components: ${data.component_tools.join(' → ')}`);
+            break;
+        
+        case 'using_workflow_pattern':
+            addLog('success', `🔄 Using workflow pattern: ${data.pattern_name}`);
+            addLog('info', `   Sequence: ${data.tool_sequence.join(' → ')}`);
+            break;
+        
+        case 'multi_tool_workflow':
+            addLog('info', `🔗 Multi-tool workflow detected: ${data.num_tasks} steps`);
+            break;
+        
+        case 'workflow_start':
+            addLog('info', `▶️ Starting workflow with ${data.total_steps} step(s)`);
+            data.tasks.forEach((task, idx) => {
+                addLog('info', `   ${idx + 1}. ${task}`);
+            });
+            break;
+        
+        case 'workflow_step':
+            addLog('info', `⚙️ Step ${data.step}/${data.total}: ${data.task}`);
+            break;
+        
+        case 'workflow_step_tool_found':
+            addLog('success', `   Found: ${data.tool_name} (${(data.similarity * 100).toFixed(1)}% match)`);
+            break;
+        
+        case 'workflow_step_executing':
+            addLog('info', `   Executing: ${data.tool_name}`);
+            break;
+        
+        case 'workflow_step_complete':
+            addLog('success', `   ✓ Step complete: ${data.result}`);
+            break;
+        
+        case 'workflow_step_failed':
+            addLog('error', `   ✗ Step failed: ${data.error}`);
+            break;
+        
+        case 'workflow_step_needs_synthesis':
+            addLog('warning', `   ⚠️ Step ${data.step} needs new tool creation`);
+            break;
+        
+        case 'workflow_complete':
+            addLog('success', `✅ Workflow complete! ${data.total_steps} steps executed`);
+            addLog('info', `   Tool sequence: ${data.tool_sequence.join(' → ')}`);
+            break;
+        
+        case 'pattern_execution_start':
+            addLog('info', `🎯 Executing pattern: ${data.pattern_name}`);
+            break;
+        
+        case 'pattern_step':
+            addLog('info', `   Step ${data.step}/${data.total}: ${data.tool_name}`);
+            break;
+        
+        case 'pattern_step_complete':
+            addLog('success', `   ✓ ${data.tool_name}: ${data.result}`);
+            break;
+        
+        case 'pattern_execution_complete':
+            addLog('success', `✅ Pattern complete: ${data.pattern_name}`);
+            break;
+        
+        case 'workflow_needs_synthesis':
+            addLog('warning', `⚠️ Workflow requires new tool at step ${data.step_failed}`);
+            break;
+        
+        case 'workflow_step_synthesizing':
+            addLog('info', `🔨 Creating new tool for step ${data.step}: ${data.task}`);
+            break;
+        
+        case 'workflow_retry':
+            addLog('success', `🔄 Retrying workflow - ${data.reason}`);
+            break;
     }
 }
 

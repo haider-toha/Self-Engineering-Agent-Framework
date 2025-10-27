@@ -100,6 +100,130 @@ def get_tool_details(tool_name):
         }), 500
 
 
+@app.route('/api/analytics/relationships', methods=['GET'])
+def get_tool_relationships():
+    """Get tool relationship analytics"""
+    try:
+        tool_name = request.args.get('tool_name')
+        min_confidence = float(request.args.get('min_confidence', 0.5))
+        
+        relationships = orchestrator.workflow_tracker.get_tool_relationships(
+            tool_name=tool_name,
+            min_confidence=min_confidence
+        )
+        
+        return jsonify({
+            "success": True,
+            "relationships": relationships,
+            "count": len(relationships)
+        })
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@app.route('/api/analytics/patterns', methods=['GET'])
+def get_workflow_patterns():
+    """Get detected workflow patterns"""
+    try:
+        min_frequency = int(request.args.get('min_frequency', 2))
+        limit = int(request.args.get('limit', 10))
+        
+        patterns = orchestrator.workflow_tracker.get_workflow_patterns(
+            min_frequency=min_frequency,
+            limit=limit
+        )
+        
+        return jsonify({
+            "success": True,
+            "patterns": patterns,
+            "count": len(patterns)
+        })
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@app.route('/api/analytics/sessions/<session_id>', methods=['GET'])
+def get_session_history(session_id):
+    """Get execution history for a session"""
+    try:
+        limit = int(request.args.get('limit', 100))
+        
+        history = orchestrator.workflow_tracker.get_session_history(
+            session_id=session_id,
+            limit=limit
+        )
+        
+        return jsonify({
+            "success": True,
+            "session_id": session_id,
+            "executions": history,
+            "count": len(history)
+        })
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@app.route('/api/analytics/stats', methods=['GET'])
+def get_workflow_stats():
+    """Get overall workflow statistics"""
+    try:
+        # Get basic stats
+        patterns = orchestrator.workflow_tracker.get_workflow_patterns(min_frequency=1, limit=100)
+        relationships = orchestrator.workflow_tracker.get_tool_relationships(min_confidence=0.1)
+        
+        # Calculate stats
+        total_patterns = len(patterns)
+        total_relationships = len(relationships)
+        
+        # Most frequent pattern
+        most_frequent_pattern = patterns[0] if patterns else None
+        
+        # Most connected tools
+        tool_connection_counts = {}
+        for rel in relationships:
+            tool_a = rel['tool_a']
+            tool_b = rel['tool_b']
+            tool_connection_counts[tool_a] = tool_connection_counts.get(tool_a, 0) + 1
+            tool_connection_counts[tool_b] = tool_connection_counts.get(tool_b, 0) + 1
+        
+        most_connected_tools = sorted(
+            tool_connection_counts.items(),
+            key=lambda x: x[1],
+            reverse=True
+        )[:5]
+        
+        return jsonify({
+            "success": True,
+            "stats": {
+                "total_patterns": total_patterns,
+                "total_relationships": total_relationships,
+                "most_frequent_pattern": {
+                    "name": most_frequent_pattern['pattern_name'],
+                    "frequency": most_frequent_pattern['frequency'],
+                    "tools": most_frequent_pattern['tool_sequence']
+                } if most_frequent_pattern else None,
+                "most_connected_tools": [
+                    {"tool": tool, "connections": count}
+                    for tool, count in most_connected_tools
+                ]
+            }
+        })
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
 @socketio.on('connect')
 def handle_connect():
     """Handle client connection"""

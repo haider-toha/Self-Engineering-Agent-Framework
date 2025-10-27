@@ -2,6 +2,7 @@
 Agent Orchestrator - Central decision-making component that coordinates all subsystems
 """
 
+import time
 from typing import Dict, Any, Optional, Callable
 from src.capability_registry import CapabilityRegistry
 from src.synthesis_engine import CapabilitySynthesisEngine
@@ -9,17 +10,21 @@ from src.executor import ToolExecutor
 from src.response_synthesizer import ResponseSynthesizer
 from src.llm_client import LLMClient
 from src.sandbox import SecureSandbox
+from src.workflow_tracker import WorkflowTracker
+from src.query_planner import QueryPlanner
+from src.composition_planner import CompositionPlanner
 
 
 class AgentOrchestrator:
     """
     The brain of the agent. Coordinates the entire flow from user request to response.
     
-    Flow:
-    1. Search for existing capability
-    2. If found: execute it
-    3. If not found: synthesize new capability, then execute it
-    4. Synthesize natural language response
+    Enhanced Flow:
+    1. Analyze query complexity and check for existing compositions/patterns
+    2. For simple queries: search for single tool and execute
+    3. For complex queries: plan and execute multi-tool workflows
+    4. Track executions and learn patterns
+    5. Synthesize natural language response
     """
     
     def __init__(
@@ -27,7 +32,10 @@ class AgentOrchestrator:
         registry: CapabilityRegistry = None,
         synthesis_engine: CapabilitySynthesisEngine = None,
         executor: ToolExecutor = None,
-        synthesizer: ResponseSynthesizer = None
+        synthesizer: ResponseSynthesizer = None,
+        workflow_tracker: WorkflowTracker = None,
+        query_planner: QueryPlanner = None,
+        composition_planner: CompositionPlanner = None
     ):
         """
         Initialize the orchestrator
@@ -37,12 +45,15 @@ class AgentOrchestrator:
             synthesis_engine: Synthesis engine for creating new tools
             executor: Tool executor
             synthesizer: Response synthesizer
+            workflow_tracker: Workflow tracking component
+            query_planner: Query analysis and planning component
+            composition_planner: Multi-tool composition component
         """
         # Initialize shared components
         llm_client = LLMClient()
         sandbox = SecureSandbox()
         
-        # Initialize subsystems
+        # Initialize core subsystems
         self.registry = registry or CapabilityRegistry()
         self.synthesis_engine = synthesis_engine or CapabilitySynthesisEngine(
             llm_client=llm_client,
@@ -51,6 +62,18 @@ class AgentOrchestrator:
         )
         self.executor = executor or ToolExecutor(llm_client=llm_client)
         self.synthesizer = synthesizer or ResponseSynthesizer(llm_client=llm_client)
+        
+        # Initialize workflow and composition components
+        self.workflow_tracker = workflow_tracker or WorkflowTracker()
+        self.query_planner = query_planner or QueryPlanner(
+            llm_client=llm_client,
+            registry=self.registry
+        )
+        self.composition_planner = composition_planner or CompositionPlanner(
+            registry=self.registry,
+            executor=self.executor,
+            llm_client=llm_client
+        )
     
     def process_request(
         self,
@@ -58,7 +81,7 @@ class AgentOrchestrator:
         callback: Optional[Callable[[str, Any], None]] = None
     ) -> Dict[str, Any]:
         """
-        Process a user request from start to finish
+        Process a user request from start to finish with enhanced workflow capabilities
         
         Args:
             user_prompt: User's natural language request
@@ -73,13 +96,85 @@ class AgentOrchestrator:
             if callback:
                 callback(event_type, data)
         
+        # Start tracking session
+        session_id = self.workflow_tracker.start_session()
+        start_time = time.time()
+        
         try:
-            # Step 0: Cleanup orphaned tools to ensure DB is in sync with the filesystem
+            # Step 0: Cleanup orphaned tools
             removed_count = self.registry.cleanup_orphaned_tools()
             if removed_count > 0:
                 emit("orphans_cleaned", {"count": removed_count})
-
-            # Step 1: Search for existing capability
+            
+            # Step 1: Plan the execution strategy
+            emit("planning_query", {"query": user_prompt})
+            execution_plan = self.query_planner.plan_execution(user_prompt)
+            
+            emit("plan_complete", {
+                "strategy": execution_plan['strategy'],
+                "reasoning": execution_plan.get('reasoning')
+            })
+            
+            # Route based on execution strategy
+            strategy = execution_plan['strategy']
+            
+            if strategy == 'composite_tool':
+                # Use existing composite tool
+                return self._execute_composite_tool(
+                    execution_plan['composite_tool'],
+                    user_prompt,
+                    emit,
+                    start_time
+                )
+            
+            elif strategy == 'workflow_pattern':
+                # Execute known workflow pattern
+                return self._execute_workflow_pattern(
+                    execution_plan['pattern'],
+                    user_prompt,
+                    emit,
+                    start_time
+                )
+            
+            elif strategy in ['multi_tool_composition', 'multi_tool_sequential']:
+                # Execute multi-tool workflow
+                return self._execute_multi_tool_workflow(
+                    execution_plan,
+                    user_prompt,
+                    emit,
+                    start_time
+                )
+            
+            else:
+                # Single tool execution (default/fallback)
+                return self._execute_single_tool(
+                    user_prompt,
+                    emit,
+                    start_time
+                )
+        
+        except Exception as e:
+            self.workflow_tracker.end_session()
+            emit("error", {"error": str(e)})
+            error_response = self.synthesizer.synthesize_error(
+                user_prompt,
+                f"An unexpected error occurred: {str(e)}"
+            )
+            return {
+                "success": False,
+                "response": error_response,
+                "error": str(e)
+            }
+    
+    def _execute_single_tool(
+        self,
+        user_prompt: str,
+        emit: Callable,
+        start_time: float
+    ) -> Dict[str, Any]:
+        """Execute a single tool (original behavior)"""
+        try:
+            # Search for existing capability
             emit("searching", {"query": user_prompt})
             
             tool_info = self.registry.search_tool(user_prompt)
@@ -101,6 +196,18 @@ class AgentOrchestrator:
                 # If execution is successful, we are done
                 if execution_result['success']:
                     tool_result = execution_result['result']
+                    
+                    # Log execution
+                    execution_time_ms = int((time.time() - start_time) * 1000)
+                    self.workflow_tracker.log_execution(
+                        tool_name=tool_info['name'],
+                        inputs=execution_result.get('arguments', {}),
+                        outputs=tool_result,
+                        success=True,
+                        execution_time_ms=execution_time_ms,
+                        user_prompt=user_prompt
+                    )
+                    
                     emit("execution_complete", {
                         "tool_name": tool_info['name'],
                         "result": str(tool_result)
@@ -109,6 +216,8 @@ class AgentOrchestrator:
                     emit("synthesizing_response", {})
                     final_response = self.synthesizer.synthesize(user_prompt, tool_result)
                     emit("complete", {"response": final_response})
+                    
+                    self.workflow_tracker.end_session()
                     
                     return {
                         "success": True,
@@ -214,6 +323,7 @@ class AgentOrchestrator:
                 }
         
         except Exception as e:
+            self.workflow_tracker.end_session()
             emit("error", {"error": str(e)})
             error_response = self.synthesizer.synthesize_error(
                 user_prompt,
@@ -223,6 +333,247 @@ class AgentOrchestrator:
                 "success": False,
                 "response": error_response,
                 "error": str(e)
+            }
+    
+    def _execute_composite_tool(
+        self,
+        composite_tool: Dict[str, Any],
+        user_prompt: str,
+        emit: Callable,
+        start_time: float
+    ) -> Dict[str, Any]:
+        """Execute an existing composite tool"""
+        emit("using_composite_tool", {
+            "tool_name": composite_tool['tool_name'],
+            "component_tools": composite_tool['component_tools'],
+            "similarity": composite_tool['similarity']
+        })
+        
+        # Get the composite tool from registry
+        tool_info = self.registry.get_tool_by_name(composite_tool['tool_name'])
+        
+        if not tool_info:
+            return self._execute_single_tool(user_prompt, emit, start_time)
+        
+        # Execute the composite tool
+        execution_result = self.executor.execute_with_retry(
+            tool_info=tool_info,
+            user_prompt=user_prompt
+        )
+        
+        if execution_result['success']:
+            tool_result = execution_result['result']
+            
+            execution_time_ms = int((time.time() - start_time) * 1000)
+            self.workflow_tracker.log_execution(
+                tool_name=composite_tool['tool_name'],
+                inputs={},
+                outputs=tool_result,
+                success=True,
+                execution_time_ms=execution_time_ms,
+                user_prompt=user_prompt
+            )
+            
+            final_response = self.synthesizer.synthesize(user_prompt, tool_result)
+            self.workflow_tracker.end_session()
+            
+            return {
+                "success": True,
+                "response": final_response,
+                "tool_name": composite_tool['tool_name'],
+                "tool_result": tool_result,
+                "used_composite": True
+            }
+        else:
+            # Fallback to single tool execution
+            return self._execute_single_tool(user_prompt, emit, start_time)
+    
+    def _execute_workflow_pattern(
+        self,
+        pattern: Dict[str, Any],
+        user_prompt: str,
+        emit: Callable,
+        start_time: float
+    ) -> Dict[str, Any]:
+        """Execute a known workflow pattern"""
+        emit("using_workflow_pattern", {
+            "pattern_name": pattern['pattern_name'],
+            "tool_sequence": pattern['tool_sequence'],
+            "similarity": pattern['similarity']
+        })
+        
+        # Execute the pattern
+        result = self.composition_planner.execute_pattern(
+            pattern=pattern,
+            user_prompt=user_prompt,
+            callback=emit
+        )
+        
+        if result['success']:
+            # Log each tool execution
+            for idx, tool_name in enumerate(result['tool_sequence']):
+                self.workflow_tracker.log_execution(
+                    tool_name=tool_name,
+                    inputs={},
+                    outputs=result['results'][idx] if idx < len(result['results']) else None,
+                    success=True,
+                    execution_time_ms=0,
+                    user_prompt=user_prompt
+                )
+            
+            # Create detailed context for response synthesis
+            workflow_context = f"Used pattern '{pattern.get('pattern_name')}' - executed {len(result['tool_sequence'])} steps:\n"
+            for idx, (tool_name, tool_result) in enumerate(zip(result['tool_sequence'], result['results']), 1):
+                workflow_context += f"{idx}. {tool_name}: {tool_result}\n"
+            workflow_context += f"Final result: {result['final_result']}"
+            
+            final_response = self.synthesizer.synthesize(user_prompt, workflow_context)
+            self.workflow_tracker.end_session()
+            
+            return {
+                "success": True,
+                "response": final_response,
+                "tool_sequence": result['tool_sequence'],
+                "tool_result": result['final_result'],
+                "used_pattern": True
+            }
+        else:
+            # Fallback
+            return self._execute_single_tool(user_prompt, emit, start_time)
+    
+    def _execute_multi_tool_workflow(
+        self,
+        execution_plan: Dict[str, Any],
+        user_prompt: str,
+        emit: Callable,
+        start_time: float
+    ) -> Dict[str, Any]:
+        """Execute a multi-tool workflow"""
+        sub_tasks = execution_plan['analysis']['sub_tasks']
+        
+        emit("multi_tool_workflow", {
+            "num_tasks": len(sub_tasks),
+            "requires_composition": execution_plan['analysis']['requires_composition']
+        })
+        
+        # Execute the workflow
+        result = self.composition_planner.execute_workflow(
+            sub_tasks=sub_tasks,
+            user_prompt=user_prompt,
+            callback=emit
+        )
+        
+        if result['success']:
+            # Log each tool execution
+            for idx, tool_name in enumerate(result['tool_sequence']):
+                self.workflow_tracker.log_execution(
+                    tool_name=tool_name,
+                    inputs={},
+                    outputs=result['results'][idx] if idx < len(result['results']) else None,
+                    success=True,
+                    execution_time_ms=0,
+                    user_prompt=user_prompt
+                )
+            
+            # Create detailed context for response synthesis
+            workflow_context = f"Executed {len(result['tool_sequence'])} step workflow:\n"
+            for idx, (tool_name, tool_result) in enumerate(zip(result['tool_sequence'], result['results']), 1):
+                workflow_context += f"{idx}. {tool_name}: {tool_result}\n"
+            workflow_context += f"Final result: {result['final_result']}"
+            
+            final_response = self.synthesizer.synthesize(user_prompt, workflow_context)
+            self.workflow_tracker.end_session()
+            
+            return {
+                "success": True,
+                "response": final_response,
+                "tool_sequence": result['tool_sequence'],
+                "tool_result": result['final_result'],
+                "multi_tool": True
+            }
+        elif result.get('needs_synthesis'):
+            # One of the sub-tasks needs a new tool - synthesize it!
+            step_failed = result['step_failed']
+            failed_task = sub_tasks[step_failed - 1]['task']
+            
+            emit("workflow_step_synthesizing", {
+                "step": step_failed,
+                "task": failed_task
+            })
+            
+            # Synthesize the missing tool
+            emit("entering_synthesis_mode", {})
+            synthesis_result = self.synthesis_engine.synthesize_capability(
+                user_prompt=failed_task,
+                callback=emit
+            )
+            
+            if not synthesis_result['success']:
+                error = synthesis_result.get('error', 'Unknown error')
+                emit("synthesis_failed", {
+                    "error": error,
+                    "step": synthesis_result.get('step', 'unknown')
+                })
+                return {
+                    "success": False,
+                    "response": self.synthesizer.synthesize_error(
+                        user_prompt,
+                        f"Failed to create tool for workflow step {step_failed}: {error}"
+                    ),
+                    "error": error
+                }
+            
+            # Tool synthesized! Retry the workflow
+            emit("workflow_retry", {
+                "reason": f"New tool '{synthesis_result['tool_name']}' created for step {step_failed}"
+            })
+            
+            # Retry workflow execution
+            retry_result = self.composition_planner.execute_workflow(
+                sub_tasks=sub_tasks,
+                user_prompt=user_prompt,
+                callback=emit
+            )
+            
+            if retry_result['success']:
+                # Log executions
+                for idx, tool_name in enumerate(retry_result['tool_sequence']):
+                    self.workflow_tracker.log_execution(
+                        tool_name=tool_name,
+                        inputs={},
+                        outputs=retry_result['results'][idx] if idx < len(retry_result['results']) else None,
+                        success=True,
+                        execution_time_ms=0,
+                        user_prompt=user_prompt
+                    )
+                
+                workflow_context = f"Executed {len(retry_result['tool_sequence'])} step workflow:\n"
+                for idx, (tool_name, tool_result) in enumerate(zip(retry_result['tool_sequence'], retry_result['results']), 1):
+                    workflow_context += f"{idx}. {tool_name}: {tool_result}\n"
+                workflow_context += f"Final result: {retry_result['final_result']}"
+                
+                final_response = self.synthesizer.synthesize(user_prompt, workflow_context)
+                self.workflow_tracker.end_session()
+                
+                return {
+                    "success": True,
+                    "response": final_response,
+                    "tool_sequence": retry_result['tool_sequence'],
+                    "tool_result": retry_result['final_result'],
+                    "multi_tool": True,
+                    "synthesized_during_workflow": True
+                }
+            else:
+                return {
+                    "success": False,
+                    "response": self.synthesizer.synthesize_error(user_prompt, retry_result.get('error', 'Workflow failed after synthesis')),
+                    "error": retry_result.get('error')
+                }
+        else:
+            return {
+                "success": False,
+                "response": self.synthesizer.synthesize_error(user_prompt, result.get('error', 'Workflow failed')),
+                "error": result.get('error')
             }
     
     def get_all_tools(self):

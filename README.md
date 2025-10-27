@@ -65,10 +65,13 @@ graph TD
 - **Self-Engineering**: Creates new tools autonomously when needed.
 - **Test-Driven Development**: Every tool is tested before integration.
 - **Security First**: All code runs in isolated Docker containers.
-- **Real-Time Visualization**: Web UI shows the entire synthesis process.
-- **Semantic Search**: Uses vector embeddings to find relevant tools.
-- **Reusability**: Tools persist and are reused for future requests.
-- **Modern Web Interface**: Responsive UI with WebSocket updates.
+- **Intelligent Workflow Composition**: Automatically handles multi-tool queries with smart decomposition.
+- **Pattern Learning**: Learns from usage to recognize and optimize common workflows.
+- **Real-Time Visualization**: Web UI shows the entire synthesis and workflow execution process.
+- **Semantic Search**: Uses vector embeddings to find relevant tools and patterns.
+- **Reusability**: Tools and workflows persist and improve over time.
+- **Modern Web Interface**: Responsive UI with WebSocket updates and workflow tracking.
+- **Analytics Dashboard**: Monitor tool relationships, patterns, and system learning.
 
 ## Quick Start
 
