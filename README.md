@@ -23,23 +23,25 @@ flowchart TD
     O -->|Plan/Compose| Q[Query & Composition Planners]
     O -->|Execute| X[Tool Executor]
     X --> S[Secure Sandbox]
-    O --> Y[Response Synthesizer]
-    O --> W[Workflow Tracker]
-    O --> G[Skill Graph (cache)]
-    O --> E1[Composite Synthesizer]
-    O --> E2[Reflection Engine]
-    O --> T[Auto-Tuner]
+    O -->|Synthesize| Y[Response Synthesizer]
+    O -->|Track| W[Workflow Tracker]
+    O -->|Cache| G[Skill Graph]
+    O -->|Learn| E1[Composite Synthesizer]
+    O -->|Reflect| E2[Reflection Engine]
+    O -->|Tune| T[Auto-Tuner]
 
-    subgraph Learning Loop
-      W --> E1
-      W --> E2
-      W --> T
-      E1 --> R
-      E2 --> R
-      T --> P
-      G --> W
+    %% Learning feedback loop
+    subgraph Learning_Loop [Learning Loop]
+        W --> E1
+        W --> E2
+        W --> T
+        E1 --> R
+        E2 --> R
+        T --> P
+        G --> W
     end
 
+    %% Style
     classDef node fill:#1e2133,stroke:#8d99ae,color:#edf2f4
     class U,O,R,P,Q,X,S,Y,W,G,E1,E2,T node
 ```
