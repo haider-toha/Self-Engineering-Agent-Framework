@@ -27,6 +27,25 @@
 
         <!-- Main Content -->
         <div class="main-content">
+            <!-- Session Management -->
+            <div class="session-section card">
+                <div class="session-header">
+                    <div class="session-title-group">
+                        <h2>Conversation Session</h2>
+                        <p class="session-subtitle">Start a fresh session to enable short-term memory between requests.</p>
+                    </div>
+                    <div class="session-actions">
+                        <button id="start-session-btn" class="secondary-btn">Start New Session</button>
+                        <button id="reset-session-btn" class="link-btn" disabled>Reset</button>
+                    </div>
+                </div>
+                <div class="session-meta">
+                    <span class="session-label">Session ID</span>
+                    <span id="session-id-display" class="session-value">Not started</span>
+                </div>
+                <p class="session-hint">Sessions persist securely in Supabase and only the most recent exchange is used for context.</p>
+            </div>
+
             <!-- Query Input Section -->
             <div class="query-section card">
                 <h2>Query Input</h2>
@@ -35,7 +54,7 @@
                         <input 
                             type="text" 
                             id="user-prompt" 
-                            placeholder="Enter your request (e.g., 'Calculate 15% of 300')"
+                            placeholder="Describe your task in natural language"
                             autocomplete="off"
                         />
                         <button type="submit" id="submit-btn">
@@ -46,15 +65,23 @@
                 </form>
                 <div class="examples">
                     <p>Example queries:</p>
-                    <button class="example-btn" data-prompt="What is 25 percent of 80?">Calculate percentage</button>
-                    <button class="example-btn" data-prompt="Convert 100 degrees Fahrenheit to Celsius">Temperature conversion</button>
-                    <button class="example-btn" data-prompt="Reverse the string 'hello world'">Reverse string</button>
-                    <button class="example-btn" data-prompt="Calculate the factorial of 5">Calculate factorial</button>
+                    <button class="example-btn" data-prompt="Analyse quarterly revenue trends for Q1-Q4: [125000, 147000, 162000, 189000] and calculate year-over-year growth projections">Revenue trend analysis</button>
+                    <button class="example-btn" data-prompt="Generate a cryptographically secure password with 16 characters including uppercase, lowercase, numbers and special symbols, then calculate its entropy">Password generation</button>
+                    <button class="example-btn" data-prompt="Parse JSON data from API response, extract nested user objects and transform into normalised database schema">JSON transformation</button>
+                    <button class="example-btn" data-prompt="Calculate compound interest on $50,000 at 7.5% annual rate over 30 years with quarterly compounding">Financial modelling</button>
                 </div>
             </div>
 
             <!-- Two Column Layout -->
             <div class="content-grid">
+                <!-- Conversation Memory -->
+                <div class="conversation-section card">
+                    <h2>Conversation Memory</h2>
+                    <div id="conversation-history" class="conversation-history">
+                        <p class="placeholder">Start a session to enable memory.</p>
+                    </div>
+                </div>
+
                 <!-- Activity Log -->
                 <div class="activity-section card">
                     <h2>Activity Log</h2>

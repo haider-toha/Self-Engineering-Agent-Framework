@@ -64,6 +64,52 @@ def get_tools():
         }), 500
 
 
+@app.route('/api/session', methods=['POST'])
+def create_session():
+    """Create a new UI session for conversational memory."""
+    if orchestrator is None:
+        return jsonify({
+            "success": False,
+            "error": "Orchestrator not initialized"
+        }), 500
+
+    try:
+        session_id = orchestrator.memory_manager.start_session()
+        return jsonify({
+            "success": True,
+            "session_id": session_id
+        })
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@app.route('/api/session/<session_id>/messages', methods=['GET'])
+def get_session_messages(session_id):
+    """Return recent messages for a session."""
+    if orchestrator is None:
+        return jsonify({
+            "success": False,
+            "error": "Orchestrator not initialized"
+        }), 500
+
+    try:
+        limit = int(request.args.get('limit', 20))
+        messages = orchestrator.memory_manager.get_recent_messages(session_id, limit=limit)
+        return jsonify({
+            "success": True,
+            "messages": messages,
+            "count": len(messages)
+        })
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
 @app.route('/api/tools/<tool_name>', methods=['GET'])
 def get_tool_details(tool_name):
     """Get detailed information about a specific tool"""
@@ -249,9 +295,14 @@ def handle_disconnect():
 def handle_query(data):
     """Handle user query"""
     user_prompt = data.get('prompt', '')
+    session_id = data.get('session_id')
     
     if not user_prompt:
         emit('error', {'message': 'No prompt provided'})
+        return
+
+    if not session_id:
+        emit('error', {'message': 'Please start a new session before sending prompts.'})
         return
     
     print(f"Processing query: {user_prompt}")
@@ -266,6 +317,7 @@ def handle_query(data):
     # Process the request
     result = orchestrator.process_request(
         user_prompt=user_prompt,
+        session_id=session_id,
         callback=event_callback
     )
     
@@ -277,9 +329,17 @@ def handle_query(data):
             'tool_name': result.get('tool_name'),
             'synthesized': result.get('synthesized', False),
             'tool_result': str(result.get('tool_result', ''))
-        }
+        },
+        'session_id': result.get('session_id') or session_id
     })
     
+    # Send updated memory snapshot for UI
+    messages = orchestrator.memory_manager.get_recent_messages(session_id, limit=10)
+    socketio.emit('session_memory', {
+        'session_id': session_id,
+        'messages': messages
+    })
+
     # Update tool count
     tool_count = orchestrator.get_tool_count()
     socketio.emit('tool_count', {'count': tool_count})

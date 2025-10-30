@@ -34,14 +34,14 @@ class WorkflowTracker:
         self.session_tools = []  # Tools executed in current session
         self.session_start_time = None
     
-    def start_session(self) -> str:
+    def start_session(self, session_id: Optional[str] = None) -> str:
         """
         Start a new tracking session
         
         Returns:
             Session ID
         """
-        self.current_session_id = str(uuid.uuid4())
+        self.current_session_id = session_id or str(uuid.uuid4())
         self.session_tools = []
         self.session_start_time = time.time()
         return self.current_session_id

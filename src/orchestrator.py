@@ -16,6 +16,9 @@ from src.workflow_tracker import WorkflowTracker
 from src.query_planner import QueryPlanner
 from src.composition_planner import CompositionPlanner
 
+# NEW: Memory manager for conversational context
+from src.session_memory import SessionMemoryManager
+
 # NEW: Self-learning components
 from src.policy_store import PolicyStore
 from src.skill_graph import SkillGraph
@@ -42,7 +45,8 @@ class AgentOrchestrator:
         synthesizer: ResponseSynthesizer = None,
         workflow_tracker: WorkflowTracker = None,
         query_planner: QueryPlanner = None,
-        composition_planner: CompositionPlanner = None
+        composition_planner: CompositionPlanner = None,
+        memory_manager: SessionMemoryManager = None
     ):
         """
         Initialize the orchestrator
@@ -94,10 +98,14 @@ class AgentOrchestrator:
         # Store shared components for reflection engine
         self.llm_client = llm_client
         self.sandbox = sandbox
+
+        # Conversational memory
+        self.memory_manager = memory_manager or SessionMemoryManager()
     
     def process_request(
         self,
         user_prompt: str,
+        session_id: Optional[str] = None,
         callback: Optional[Callable[[str, Any], None]] = None
     ) -> Dict[str, Any]:
         """
@@ -116,9 +124,24 @@ class AgentOrchestrator:
             if callback:
                 callback(event_type, data)
         
-        # Start tracking session
-        session_id = self.workflow_tracker.start_session()
         start_time = time.time()
+        active_session_id = None
+        agent_prompt = user_prompt
+
+        # Optional conversational context
+        if session_id:
+            active_session_id = self.memory_manager.start_session(session_id)
+            agent_prompt = self.memory_manager.build_prompt_with_context(
+                active_session_id,
+                user_prompt
+            )
+            # Persist the incoming user message immediately so the next turn has context
+            self.memory_manager.append_message(active_session_id, "user", user_prompt)
+        else:
+            active_session_id = None
+
+        # Start workflow tracker session (ties tool executions to the UI session when provided)
+        self.workflow_tracker.start_session(active_session_id)
         
         try:
             # Step 0: Cleanup orphaned tools
@@ -128,7 +151,7 @@ class AgentOrchestrator:
             
             # Step 1: Plan the execution strategy
             emit("planning_query", {"query": user_prompt})
-            execution_plan = self.query_planner.plan_execution(user_prompt)
+            execution_plan = self.query_planner.plan_execution(agent_prompt)
             
             emit("plan_complete", {
                 "strategy": execution_plan['strategy'],
@@ -140,9 +163,9 @@ class AgentOrchestrator:
             
             if strategy == 'composite_tool':
                 # Use existing composite tool
-                return self._execute_composite_tool(
+                result = self._execute_composite_tool(
                     execution_plan['composite_tool'],
-                    user_prompt,
+                    agent_prompt,
                     emit,
                     start_time,
                     callback
@@ -150,9 +173,9 @@ class AgentOrchestrator:
             
             elif strategy == 'workflow_pattern':
                 # Execute known workflow pattern
-                return self._execute_workflow_pattern(
+                result = self._execute_workflow_pattern(
                     execution_plan['pattern'],
-                    user_prompt,
+                    agent_prompt,
                     emit,
                     start_time,
                     callback
@@ -160,9 +183,9 @@ class AgentOrchestrator:
             
             elif strategy in ['multi_tool_composition', 'multi_tool_sequential']:
                 # Execute multi-tool workflow
-                return self._execute_multi_tool_workflow(
+                result = self._execute_multi_tool_workflow(
                     execution_plan,
-                    user_prompt,
+                    agent_prompt,
                     emit,
                     start_time,
                     callback
@@ -170,12 +193,23 @@ class AgentOrchestrator:
             
             else:
                 # Single tool execution (default/fallback)
-                return self._execute_single_tool(
-                    user_prompt,
+                result = self._execute_single_tool(
+                    agent_prompt,
                     emit,
                     start_time,
                     callback
                 )
+
+            if isinstance(result, dict) and active_session_id:
+                if result.get('response'):
+                    self.memory_manager.append_message(
+                        active_session_id,
+                        "assistant",
+                        result['response']
+                    )
+                result['session_id'] = active_session_id
+
+            return result
         
         except Exception as e:
             self.workflow_tracker.end_session()
@@ -184,10 +218,13 @@ class AgentOrchestrator:
                 user_prompt,
                 f"An unexpected error occurred: {str(e)}"
             )
+            if active_session_id:
+                self.memory_manager.append_message(active_session_id, "assistant", error_response)
             return {
                 "success": False,
                 "response": error_response,
-                "error": str(e)
+                "error": str(e),
+                "session_id": active_session_id
             }
     
     def _execute_single_tool(
@@ -230,8 +267,8 @@ class AgentOrchestrator:
                 if cached_result:
                     emit("cache_hit", {"tool": tool_info['name']})
                     
-                    # Use cached result
-                    final_response = self.synthesizer.synthesize(user_prompt, cached_result)
+                    # Use cached result - return raw data
+                    final_response = str(cached_result)
                     self.workflow_tracker.end_session()
                     
                     return {
@@ -281,7 +318,8 @@ class AgentOrchestrator:
                     })
                     
                     emit("synthesizing_response", {})
-                    final_response = self.synthesizer.synthesize(user_prompt, tool_result)
+                    # Return raw data instead of natural language synthesis
+                    final_response = str(tool_result)
                     emit("complete", {"response": final_response})
                     
                     self.workflow_tracker.end_session()
@@ -407,9 +445,8 @@ class AgentOrchestrator:
                 })
                 
                 emit("synthesizing_response", {})
-                final_response = self.synthesizer.synthesize_synthesis_result(
-                    tool_name, user_prompt, tool_result
-                )
+                # Return raw data instead of natural language synthesis  
+                final_response = str(tool_result)
                 
                 emit("complete", {"response": final_response})
                 
@@ -474,7 +511,8 @@ class AgentOrchestrator:
                 user_prompt=user_prompt
             )
             
-            final_response = self.synthesizer.synthesize(user_prompt, tool_result)
+            # Return raw data instead of synthesized response
+            final_response = str(tool_result)
             self.workflow_tracker.end_session()
             
             return {
@@ -570,7 +608,8 @@ class AgentOrchestrator:
                 workflow_context += f"{idx}. {tool_name}: {tool_result}\n"
             workflow_context += f"Final result: {result['final_result']}"
             
-            final_response = self.synthesizer.synthesize(user_prompt, workflow_context)
+            # Return raw data instead of synthesized response
+            final_response = str(result['final_result'])
             self.workflow_tracker.end_session()
             
             return {
@@ -625,7 +664,8 @@ class AgentOrchestrator:
                 workflow_context += f"{idx}. {tool_name}: {tool_result}\n"
             workflow_context += f"Final result: {result['final_result']}"
             
-            final_response = self.synthesizer.synthesize(user_prompt, workflow_context)
+            # Return raw data instead of synthesized response
+            final_response = str(result['final_result'])
             self.workflow_tracker.end_session()
             
             return {
@@ -696,7 +736,8 @@ class AgentOrchestrator:
                     workflow_context += f"{idx}. {tool_name}: {tool_result}\n"
                 workflow_context += f"Final result: {retry_result['final_result']}"
                 
-                final_response = self.synthesizer.synthesize(user_prompt, workflow_context)
+                # Return raw data instead of synthesized response
+                final_response = str(retry_result['final_result'])
                 self.workflow_tracker.end_session()
                 
                 return {

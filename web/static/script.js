@@ -14,9 +14,15 @@ const responseContainer = document.getElementById('response-container');
 const toolsList = document.getElementById('tools-list');
 const toolCount = document.getElementById('tool-count');
 const statusIndicator = document.getElementById('status');
+const startSessionBtn = document.getElementById('start-session-btn');
+const resetSessionBtn = document.getElementById('reset-session-btn');
+const sessionIdDisplay = document.getElementById('session-id-display');
+const conversationHistory = document.getElementById('conversation-history');
 
 // State
 let isProcessing = false;
+let currentSessionId = null;
+let isSessionInitializing = false;
 let currentWorkflow = null;
 let progressSummary = {
     stage: 'idle',
@@ -31,6 +37,10 @@ socket.on('connect', () => {
     console.log('Connected to agent');
     updateStatus('Connected', 'success');
     loadTools();
+    updateSessionDisplay();
+    if (currentSessionId) {
+        fetchSessionMessages(currentSessionId);
+    }
 });
 
 socket.on('disconnect', () => {
@@ -50,6 +60,11 @@ socket.on('query_complete', (data) => {
     isProcessing = false;
     updateButtonState();
     
+    if (data.session_id) {
+        currentSessionId = data.session_id;
+        updateSessionDisplay();
+    }
+
     if (data.success) {
         displayResponse(data.response, data.metadata);
         addLog('success', '✓ Request completed successfully');
@@ -71,6 +86,18 @@ socket.on('error', (data) => {
     updateStatus('Error', 'error');
 });
 
+socket.on('session_memory', (data) => {
+    if (!data || !data.session_id) {
+        return;
+    }
+
+    if (data.session_id !== currentSessionId) {
+        return;
+    }
+
+    renderConversationHistory(data.messages || []);
+});
+
 // Form Submission
 queryForm.addEventListener('submit', (e) => {
     e.preventDefault();
@@ -81,6 +108,12 @@ queryForm.addEventListener('submit', (e) => {
         return;
     }
     
+    if (!currentSessionId) {
+        addLog('warning', 'Start a session before sending a query.');
+        updateStatus('Session required', 'warning');
+        return;
+    }
+
     if (isProcessing) {
         return;
     }
@@ -93,7 +126,7 @@ queryForm.addEventListener('submit', (e) => {
     initializeProgressSummary(prompt);
     
     // Send query
-    socket.emit('query', { prompt: prompt });
+    socket.emit('query', { prompt: prompt, session_id: currentSessionId });
     
     // Update UI
     isProcessing = true;
@@ -110,6 +143,24 @@ document.querySelectorAll('.example-btn').forEach(btn => {
         userPrompt.focus();
     });
 });
+
+if (startSessionBtn) {
+    startSessionBtn.addEventListener('click', () => {
+        if (isSessionInitializing) {
+            return;
+        }
+        startNewSession();
+    });
+}
+
+if (resetSessionBtn) {
+    resetSessionBtn.addEventListener('click', () => {
+        if (!currentSessionId) {
+            return;
+        }
+        resetSession();
+    });
+}
 
 // Event Handlers
 function handleAgentEvent(eventType, data) {
@@ -169,7 +220,7 @@ function handleAgentEvent(eventType, data) {
             
         case 'synthesizing_response':
             updateProgressSummary('responding');
-            addLog('info', 'Generating natural language response...');
+            addLog('info', 'Generating response...');
             break;
             
         case 'complete':
@@ -183,13 +234,13 @@ function handleAgentEvent(eventType, data) {
         
         // Workflow & Composition Events
         case 'planning_query':
-            // Skip this verbose message for cleaner logs
+            addLog('info', 'Analyzing query complexity and planning execution strategy...');
             break;
         
         case 'plan_complete':
-            // Only log for complex strategies to reduce verbosity
-            if (data.strategy !== 'single_tool') {
-                addLog('success', `Execution plan: ${data.strategy} - ${data.reasoning}`);
+            addLog('success', `Strategy selected: ${data.strategy}`);
+            if (data.reasoning) {
+                addLog('info', `Reasoning: ${data.reasoning}`);
             }
             break;
         
@@ -278,6 +329,159 @@ function handleAgentEvent(eventType, data) {
     }
 }
 
+// Session Management ------------------------------------------------------
+const defaultPromptPlaceholder = userPrompt ? userPrompt.getAttribute('placeholder') : '';
+
+function setFormEnabled(enabled) {
+    if (!userPrompt || !submitBtn) {
+        return;
+    }
+
+    userPrompt.disabled = !enabled;
+    submitBtn.disabled = !enabled || isProcessing;
+
+    if (!enabled) {
+        userPrompt.value = '';
+        userPrompt.setAttribute('placeholder', 'Start a session to send a request');
+    } else {
+        userPrompt.setAttribute('placeholder', defaultPromptPlaceholder);
+        userPrompt.focus();
+    }
+}
+
+function updateSessionDisplay() {
+    if (sessionIdDisplay) {
+        sessionIdDisplay.textContent = currentSessionId || 'Not started';
+        sessionIdDisplay.classList.toggle('active', Boolean(currentSessionId));
+    }
+
+    if (resetSessionBtn) {
+        resetSessionBtn.disabled = !currentSessionId;
+    }
+
+    if (startSessionBtn) {
+        startSessionBtn.disabled = isSessionInitializing;
+        startSessionBtn.textContent = isSessionInitializing ? 'Creating...' : (currentSessionId ? 'Start Fresh Session' : 'Start New Session');
+    }
+
+    if (!currentSessionId || isSessionInitializing) {
+        setFormEnabled(false);
+    } else if (!isProcessing) {
+        setFormEnabled(true);
+    }
+
+    updateButtonState();
+}
+
+async function startNewSession() {
+    if (isSessionInitializing) {
+        return;
+    }
+
+    try {
+        isSessionInitializing = true;
+        updateSessionDisplay();
+        updateStatus('Starting session…', 'info');
+
+        const response = await fetch('/api/session', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            throw new Error(data.error || 'Failed to create session');
+        }
+
+        currentSessionId = data.session_id;
+        addLog('success', `New session started: ${currentSessionId}`);
+        updateStatus('Session ready', 'success');
+        renderConversationHistory([]);
+        await fetchSessionMessages(currentSessionId);
+    } catch (error) {
+        console.error('Failed to start session:', error);
+        addLog('error', `Session error: ${error.message}`);
+        updateStatus('Session error', 'error');
+    } finally {
+        isSessionInitializing = false;
+        updateSessionDisplay();
+    }
+}
+
+function resetSession() {
+    currentSessionId = null;
+    renderConversationHistory([]);
+    updateSessionDisplay();
+    updateStatus('Session reset', 'warning');
+    addLog('warning', 'Session reset. Start a new session to continue.');
+}
+
+async function fetchSessionMessages(sessionId) {
+    if (!sessionId) {
+        renderConversationHistory([]);
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/session/${sessionId}/messages?limit=10`);
+        const data = await response.json();
+
+        if (!data.success) {
+            throw new Error(data.error || 'Failed to fetch session messages');
+        }
+
+        renderConversationHistory(data.messages || []);
+    } catch (error) {
+        console.error('Failed to load session messages:', error);
+        renderConversationHistory([]);
+    }
+}
+
+function renderConversationHistory(messages) {
+    if (!conversationHistory) {
+        return;
+    }
+
+    if (!messages || messages.length === 0) {
+        const placeholderText = currentSessionId ? 'No messages yet. Submit a prompt to build session memory.' : 'Start a session to enable memory.';
+        conversationHistory.innerHTML = `<p class="placeholder">${placeholderText}</p>`;
+        return;
+    }
+
+    conversationHistory.innerHTML = '';
+
+    messages.forEach((message) => {
+        const wrapper = document.createElement('div');
+        const role = message.role === 'user' ? 'user' : 'assistant';
+        wrapper.className = `conversation-message ${role}`;
+
+        const roleLabel = role === 'user' ? 'You' : 'Agent';
+        wrapper.innerHTML = `
+            <span class="message-role">${roleLabel}</span>
+            <p class="message-content">${escapeHtml(message.content || '')}</p>
+        `;
+
+        conversationHistory.appendChild(wrapper);
+    });
+
+    conversationHistory.scrollTop = conversationHistory.scrollHeight;
+}
+
+function escapeHtml(str) {
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+updateSessionDisplay();
+renderConversationHistory([]);
+
 function handleSynthesisStep(data) {
     const stepNames = {
         'specification': 'Generating function specification',
@@ -330,7 +534,6 @@ function initializeProgressSummary(query) {
             </div>
             <div class="progress-status">
                 <div class="progress-stage">Initializing...</div>
-                <div class="progress-time">Started ${new Date().toLocaleTimeString()}</div>
             </div>
         </div>
         <div class="progress-bar">
@@ -383,8 +586,6 @@ function addLog(type, message, grouped = false) {
     const entry = document.createElement('div');
     entry.className = `log-entry ${type} ${grouped ? 'grouped' : ''}`;
     
-    const time = new Date().toLocaleTimeString();
-    
     // Add better icons for different log types
     const typeIcons = {
         'info': '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>',
@@ -397,7 +598,6 @@ function addLog(type, message, grouped = false) {
         <div class="log-content">
             <div class="log-header">
                 <span class="log-icon">${typeIcons[type] || typeIcons['info']}</span>
-                <span class="log-time">${time}</span>
             </div>
             <div class="log-message">${message}</div>
         </div>
@@ -529,12 +729,18 @@ function displayError(errorMessage) {
 }
 
 function updateButtonState() {
+    if (!submitBtn || !btnText || !btnLoader) {
+        return;
+    }
+
+    const disableSubmit = isProcessing || !currentSessionId || isSessionInitializing;
+
+    submitBtn.disabled = disableSubmit;
+
     if (isProcessing) {
-        submitBtn.disabled = true;
         btnText.style.display = 'none';
         btnLoader.style.display = 'inline-block';
     } else {
-        submitBtn.disabled = false;
         btnText.style.display = 'inline';
         btnLoader.style.display = 'none';
     }
@@ -553,6 +759,29 @@ function updateStatus(text, type) {
     } else {
         statusIndicator.style.color = 'var(--info-color)';
     }
+}
+
+function formatTimestamp(timestamp) {
+    if (!timestamp) {
+        return 'Unknown';
+    }
+    
+    // Try to parse the timestamp
+    const date = new Date(timestamp);
+    
+    // Check if the date is valid
+    if (isNaN(date.getTime())) {
+        // If timestamp is a number (Unix timestamp in seconds), convert to milliseconds
+        if (!isNaN(timestamp)) {
+            const dateFromNumber = new Date(timestamp * 1000);
+            if (!isNaN(dateFromNumber.getTime())) {
+                return dateFromNumber.toLocaleString();
+            }
+        }
+        return 'Unknown';
+    }
+    
+    return date.toLocaleString();
 }
 
 function loadTools() {
@@ -578,7 +807,7 @@ function displayTools(tools) {
     }
     
     toolsList.innerHTML = tools.map(tool => {
-        const timestamp = new Date(tool.timestamp).toLocaleString();
+        const timestamp = formatTimestamp(tool.timestamp);
         const description = tool.docstring.split('\n')[0] || 'No description';
         
         return `
@@ -619,7 +848,7 @@ function showToolDetails(toolName) {
 function populateModal(tool) {
     document.getElementById('modal-tool-name').textContent = tool.name;
     document.getElementById('modal-tool-description').textContent = tool.docstring;
-    document.getElementById('modal-tool-timestamp').textContent = new Date(tool.timestamp).toLocaleString();
+    document.getElementById('modal-tool-timestamp').textContent = formatTimestamp(tool.timestamp);
     document.getElementById('modal-tool-filepath').textContent = tool.file_path;
     document.getElementById('modal-tool-code').textContent = tool.code;
     document.getElementById('modal-test-code').textContent = tool.test_code;
