@@ -61,7 +61,7 @@ class LLMClient:
         Returns:
             Dictionary containing function_name, parameters, return_type, and docstring
         """
-        system_prompt = """You are a highly disciplined software architect. Your SOLE task is to design a Python function specification based on a user's request. You MUST NOT answer the user's question directly. You MUST ONLY return a JSON object.
+        system_prompt = """You are a highly disciplined software architect focused on ROBUST, PRODUCTION-READY code. Your SOLE task is to design a Python function specification based on a user's request. You MUST NOT answer the user's question directly. You MUST ONLY return a JSON object.
 
 The JSON object must have this exact structure:
 {
@@ -73,10 +73,18 @@ The JSON object must have this exact structure:
     "docstring": "Comprehensive, detailed docstring explaining the function's purpose, parameters, and return value. Be very descriptive and include examples of usage."
 }
 
-**IMPORTANT RULES:**
+**CRITICAL DESIGN PRINCIPLES:**
 1.  **NEVER** answer the user's request directly.
-2.  **ALWAYS** respond with ONLY the JSON object. Do not include any other text, explanations, or markdown formatting.
-3.  **Make the docstring very descriptive** - explain what the function does, why it's useful, include usage examples, and describe edge cases.
+2.  **ALWAYS** respond with ONLY the JSON object. No other text, explanations, or markdown formatting.
+3.  **EDGE CASE FIRST THINKING**: Before designing the function, mentally consider ALL potential edge cases:
+    - **Division by zero**: What if denominators are zero?
+    - **Empty/null data**: What if inputs are empty, None, or missing?
+    - **Invalid data types**: What if wrong types are passed?
+    - **File operations**: What if files don't exist or are corrupted?
+    - **Mathematical operations**: What about negative numbers, infinity, NaN?
+    - **Data boundaries**: What about extremely large/small values?
+4.  **ROBUST RETURN TYPES**: Design return types that can handle partial success/failure
+5.  **COMPREHENSIVE DOCSTRING**: Must explain the function's purpose, parameters, return value, AND explicitly mention how edge cases are handled
 
 Example Request: "Calculate the percentage of a number"
 
@@ -87,8 +95,8 @@ Example Response:
         {"name": "base", "type": "float", "description": "The base number from which to calculate the percentage."},
         {"name": "percentage", "type": "float", "description": "The percentage value to be calculated."}
     ],
-    "return_type": "float",
-    "docstring": "Calculates the percentage of a given base number. This function is useful for determining what portion a percentage represents of a total value. For example, calculating 25% of 100 would return 25.0. Commonly used in financial calculations, statistics, and data analysis. Handles both whole numbers and decimals. Examples: calculate_percentage(100, 25) returns 25.0, calculate_percentage(80, 12.5) returns 10.0."
+    "return_type": "Dict[str, Any]",
+    "docstring": "Calculates the percentage of a given base number with robust error handling. Returns a dictionary containing 'result' (float or None), 'success' (bool), and 'error' (str or None). Handles edge cases: zero/negative base numbers, extreme percentage values, invalid inputs. For example, calculate_percentage(100, 25) returns {'result': 25.0, 'success': True, 'error': None}. Used in financial calculations, statistics, and data analysis where reliability is crucial."
 }"""
         
         messages = [
@@ -121,23 +129,34 @@ Example Response:
             for p in spec['parameters']
         ])
         
-        system_prompt = """You are a QA engineer. Write comprehensive pytest tests for a function.
+        system_prompt = """You are an EXPERT QA engineer focused on BULLETPROOF testing. Write comprehensive pytest tests that catch ALL edge cases.
 
-Requirements:
-1. Import pytest and any necessary modules
-2. Import the function being tested (assume it's in the same directory)
-3. Write at least 3-5 test functions covering:
-   - Normal use cases
-   - Edge cases (empty inputs, None, zero, negative numbers, etc.)
-   - Type validation where appropriate
-4. Use descriptive test function names starting with 'test_'
-5. Include assertions with clear failure messages
-6. Return ONLY the Python test code, no explanations
-7. CRITICAL: Do NOT create new files during testing (filesystem is read-only)
-8. For CSV/file functions: Use ONLY the actual existing data files that are provided (like 'data/ecommerce_products.csv')
-9. NEVER reference non-existent files or try to test file-not-found scenarios 
-10. NEVER use tempfile, file writing, StringIO objects, or any disk operations for testing file path functions
-11. Focus tests on the data processing logic using the provided real data files
+**MANDATORY EDGE CASE COVERAGE:**
+1. **Mathematical Edge Cases**: Division by zero, negative numbers, infinity, NaN, very large/small numbers
+2. **Data Edge Cases**: Empty inputs, None values, missing data, invalid data types
+3. **File/CSV Edge Cases**: Empty files, malformed data, missing columns, zero/negative values in calculations
+4. **Boundary Cases**: Minimum/maximum values, empty collections, single-item collections
+5. **Error Conditions**: Invalid parameters, type mismatches, unexpected formats
+
+**REQUIREMENTS:**
+1. Import pytest and any necessary modules (pandas, numpy, etc.)
+2. Import the function being tested (assume it's in the same directory)  
+3. Write AT LEAST 7-10 test functions covering:
+   - **Normal use cases** (2-3 tests)
+   - **Mathematical edge cases** (division by zero, negative values, extreme numbers)
+   - **Data validation edge cases** (None, empty, wrong types)
+   - **Domain-specific edge cases** (for CSV: zero prices, negative margins, missing data)
+   - **Boundary conditions** (min/max values, empty datasets)
+4. Use descriptive test function names: `test_function_edge_case_description`
+5. Include assertions with clear failure messages explaining WHAT should happen
+6. For functions returning dictionaries: Test both success and error paths
+7. Return ONLY the Python test code, no explanations
+
+**FILE TESTING RULES:**
+- Use ONLY existing data files (like 'data/ecommerce_products.csv')
+- Test with the ACTUAL data that contains real edge cases
+- NEVER create temporary files or use StringIO
+- Focus on how the function handles problematic data in real files
 
 Example format:
 ```python
@@ -193,24 +212,53 @@ Generate comprehensive pytest tests for this function."""
             for p in spec['parameters']
         ])
         
-        system_prompt = """You are a Python developer. Implement a function that passes ALL provided tests.
+        system_prompt = """You are a SENIOR Python developer specializing in PRODUCTION-READY, BULLETPROOF code. Implement a function that passes ALL provided tests with ROBUST error handling.
 
-Requirements:
-1. Write clean, efficient, production-quality code
-2. Include proper type hints
-3. Add the provided docstring
-4. Handle edge cases appropriately
-5. Ensure the code passes ALL tests
+**CRITICAL IMPLEMENTATION PRINCIPLES:**
+1. **EDGE-CASE FIRST DESIGN**: Handle ALL edge cases explicitly before normal cases
+2. **DEFENSIVE PROGRAMMING**: Validate ALL inputs, assume nothing about data quality
+3. **GRACEFUL FAILURE**: Never crash - return structured error information instead
+4. **MATHEMATICAL SAFETY**: Check for division by zero, NaN, infinity before calculations
+5. **DATA VALIDATION**: Verify data types, check for None/empty values, validate ranges
+6. **FILE SAFETY**: Handle missing files, corrupted data, malformed CSV gracefully
+
+**MANDATORY ERROR HANDLING PATTERNS:**
+- **Try-catch blocks** around ALL risky operations (file I/O, math, data access)
+- **Input validation** at function start (type checks, None checks, range validation)
+- **Safe mathematical operations** (check denominators before division)
+- **Structured return values** that include success/error information
+- **Clear error messages** that help diagnose the specific problem
+
+**REQUIREMENTS:**
+1. Write clean, efficient, production-quality code that NEVER crashes
+2. Include proper type hints for ALL parameters and return values
+3. Add the provided docstring exactly
+4. Handle edge cases with explicit checks and safe fallbacks
+5. Ensure the code passes ALL tests (including edge case tests)
 6. Return ONLY the Python function code, no explanations or test code
 
 Example format:
 ```python
-def function_name(param1: type1, param2: type2) -> return_type:
+def function_name(param1: type1, param2: type2) -> Dict[str, Any]:
     \"\"\"
     Docstring here
     \"\"\"
-    # Implementation
-    return result
+    # Input validation
+    if param1 is None:
+        return {"success": False, "result": None, "error": "param1 cannot be None"}
+    
+    try:
+        # Safe operations with edge case handling
+        if param2 == 0:  # Division by zero check
+            return {"success": False, "result": None, "error": "Division by zero"}
+        
+        # Main logic
+        result = param1 / param2
+        
+        return {"success": True, "result": result, "error": None}
+    
+    except Exception as e:
+        return {"success": False, "result": None, "error": f"Unexpected error: {str(e)}"}
 ```"""
         
         user_content = f"""Function Specification:
