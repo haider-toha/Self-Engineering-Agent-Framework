@@ -6,6 +6,7 @@ from typing import Dict, Any, List, Optional, Callable
 from src.capability_registry import CapabilityRegistry
 from src.executor import ToolExecutor
 from src.llm_client import LLMClient
+from src.utils import extract_json_from_response
 import json
 
 
@@ -212,12 +213,10 @@ Extract the arguments as JSON."""
             
             try:
                 response = self.llm_client._call_llm(messages, temperature=0.0, max_tokens=500)
-                start = response.find('{')
-                end = response.rfind('}') + 1
-                if start != -1 and end > 0:
-                    arguments = json.loads(response[start:end])
-                    return arguments
-            except Exception as e:
+                json_str = extract_json_from_response(response)
+                arguments = json.loads(json_str)
+                return arguments
+            except (ValueError, json.JSONDecodeError) as e:
                 print(f"Warning: Failed to extract arguments with context: {str(e)}")
         
         # Fallback to standard argument extraction
@@ -302,10 +301,9 @@ Extract arguments as JSON."""
                              {"role": "user", "content": user_content}],
                             temperature=0.0
                         )
-                        start = response.find('{')
-                        end = response.rfind('}') + 1
-                        arguments = json.loads(response[start:end]) if start != -1 else {}
-                    except Exception:
+                        json_str = extract_json_from_response(response)
+                        arguments = json.loads(json_str)
+                    except (ValueError, json.JSONDecodeError):
                         arguments = {}
                 
                 # Execute tool

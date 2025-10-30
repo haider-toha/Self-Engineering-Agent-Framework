@@ -9,6 +9,7 @@ from config import Config
 from src.llm_client import LLMClient
 from src.sandbox import SecureSandbox
 from src.capability_registry import CapabilityRegistry
+from src.utils import extract_code_from_markdown
 
 
 class ReflectionEngine:
@@ -339,14 +340,9 @@ Generate the fixed code."""
         ]
         
         response = self.llm_client._call_llm(messages, temperature=0.2, max_tokens=2000)
-        
+
         # Extract code
-        if "```python" in response:
-            response = response.split("```python")[1].split("```")[0].strip()
-        elif "```" in response:
-            response = response.split("```")[1].split("```")[0].strip()
-        
-        return response
+        return extract_code_from_markdown(response)
     
     def _generate_minimal_failing_test(
         self,
@@ -388,14 +384,9 @@ Generate a minimal failing test case."""
         ]
         
         response = self.llm_client._call_llm(messages, temperature=0.2, max_tokens=800)
-        
+
         # Extract code
-        if "```python" in response:
-            response = response.split("```python")[1].split("```")[0].strip()
-        elif "```" in response:
-            response = response.split("```")[1].split("```")[0].strip()
-        
-        return response
+        return extract_code_from_markdown(response)
     
     def _get_tool_tests(self, test_path: str) -> str:
         """Read tool test file"""

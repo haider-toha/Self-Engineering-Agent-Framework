@@ -6,6 +6,7 @@ import json
 from typing import Dict, Any, List
 from openai import OpenAI
 from config import Config
+from src.utils import extract_code_from_markdown, extract_json_from_response
 
 
 class LLMClient:
@@ -96,19 +97,13 @@ Example Response:
         ]
         
         response = self._call_llm(messages, temperature=0.2) # Lower temperature for more deterministic JSON
-        
+
         # Parse JSON response
         try:
-            # Most robust way to find JSON is to look for the first '{' and last '}'
-            start = response.find('{')
-            end = response.rfind('}') + 1
-            if start == -1 or end == 0:
-                raise json.JSONDecodeError("No JSON object found in response", response, 0)
-            
-            json_str = response[start:end]
+            json_str = extract_json_from_response(response)
             spec = json.loads(json_str)
             return spec
-        except json.JSONDecodeError as e:
+        except (json.JSONDecodeError, ValueError) as e:
             raise Exception(f"Failed to parse LLM response as JSON: {e}\nResponse: {response}")
     
     def generate_tests(self, spec: Dict[str, Any]) -> str:
@@ -168,14 +163,9 @@ Generate comprehensive pytest tests for this function."""
         ]
         
         response = self._call_llm(messages, temperature=0.3, max_tokens=1500)
-        
+
         # Extract code from markdown blocks if present
-        if "```python" in response:
-            response = response.split("```python")[1].split("```")[0].strip()
-        elif "```" in response:
-            response = response.split("```")[1].split("```")[0].strip()
-        
-        return response
+        return extract_code_from_markdown(response)
     
     def generate_implementation(self, spec: Dict[str, Any], tests: str) -> str:
         """
@@ -229,14 +219,9 @@ Implement the function to pass ALL tests."""
         ]
         
         response = self._call_llm(messages, temperature=0.2, max_tokens=2000)
-        
+
         # Extract code from markdown blocks if present
-        if "```python" in response:
-            response = response.split("```python")[1].split("```")[0].strip()
-        elif "```" in response:
-            response = response.split("```")[1].split("```")[0].strip()
-        
-        return response
+        return extract_code_from_markdown(response)
     
     def extract_arguments(self, prompt: str, function_signature: str) -> Dict[str, Any]:
         """
@@ -282,19 +267,13 @@ Extract the arguments as JSON."""
         ]
         
         response = self._call_llm(messages, temperature=0.0, max_tokens=500)
-        
+
         # Parse JSON response
         try:
-            # Most robust way to find JSON is to look for the first '{' and last '}'
-            start = response.find('{')
-            end = response.rfind('}') + 1
-            if start == -1 or end == 0:
-                raise json.JSONDecodeError("No JSON object found in response", response, 0)
-            
-            json_str = response[start:end]
+            json_str = extract_json_from_response(response)
             args = json.loads(json_str)
             return args
-        except json.JSONDecodeError as e:
+        except (json.JSONDecodeError, ValueError) as e:
             raise Exception(f"Failed to parse argument extraction as JSON: {e}\nResponse: {response}")
     
     def generate_embedding(self, text: str) -> List[float]:

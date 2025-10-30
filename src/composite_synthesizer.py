@@ -10,6 +10,7 @@ from src.llm_client import LLMClient
 from src.sandbox import SecureSandbox
 from src.capability_registry import CapabilityRegistry
 from src.policy_store import PolicyStore
+from src.utils import extract_code_from_markdown, extract_json_from_response
 
 
 class CompositeSynthesizer:
@@ -270,13 +271,12 @@ Design a single function that combines these steps."""
         ]
         
         response = self.llm_client._call_llm(messages, temperature=0.2)
-        
+
         # Parse JSON
         import json
-        start = response.find('{')
-        end = response.rfind('}') + 1
-        spec = json.loads(response[start:end])
-        
+        json_str = extract_json_from_response(response)
+        spec = json.loads(json_str)
+
         return spec
     
     def _generate_composite_tests(
@@ -318,14 +318,9 @@ Generate comprehensive pytest tests."""
         ]
         
         response = self.llm_client._call_llm(messages, temperature=0.3, max_tokens=1500)
-        
+
         # Extract code
-        if "```python" in response:
-            response = response.split("```python")[1].split("```")[0].strip()
-        elif "```" in response:
-            response = response.split("```")[1].split("```")[0].strip()
-        
-        return response
+        return extract_code_from_markdown(response)
     
     def _generate_composite_implementation(
         self,
@@ -378,14 +373,9 @@ Implement the composite function."""
         ]
         
         response = self.llm_client._call_llm(messages, temperature=0.2, max_tokens=2000)
-        
+
         # Extract code
-        if "```python" in response:
-            response = response.split("```python")[1].split("```")[0].strip()
-        elif "```" in response:
-            response = response.split("```")[1].split("```")[0].strip()
-        
-        return response
+        return extract_code_from_markdown(response)
     
     def _register_composite(
         self,

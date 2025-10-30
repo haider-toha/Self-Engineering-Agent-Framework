@@ -1,8 +1,13 @@
 import os
+import logging
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
 load_dotenv()
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 
 class Config:
@@ -47,6 +52,6 @@ if __name__ != "__main__":
     try:
         Config.validate()
     except ValueError as e:
-        print(f"Configuration Error: {e}")
-        # Don't raise in production, just log the warning
+        logger.error(f"Configuration Error: {e}")
+        # Don't raise in production, just log the error
 

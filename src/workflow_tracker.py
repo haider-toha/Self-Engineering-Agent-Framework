@@ -20,12 +20,16 @@ class WorkflowTracker:
     def __init__(self, supabase_client: Client = None):
         """
         Initialize the workflow tracker
-        
+
         Args:
             supabase_client: Supabase client instance
         """
-        from supabase import create_client
-        self.supabase = supabase_client or create_client(Config.SUPABASE_URL, Config.SUPABASE_KEY)
+        # Supabase already imported at module level (line 10)
+        if supabase_client is None:
+            from supabase import create_client
+            self.supabase = create_client(Config.SUPABASE_URL, Config.SUPABASE_KEY)
+        else:
+            self.supabase = supabase_client
         self.current_session_id = None
         self.session_tools = []  # Tools executed in current session
         self.session_start_time = None

@@ -331,12 +331,20 @@ class SkillGraph:
             
             if result.data and len(result.data) > 0:
                 cached = result.data[0]
-                
+
                 # Check if expired
                 expires_at = cached.get("expires_at")
                 if expires_at:
-                    expiry = datetime.fromisoformat(expires_at.replace('Z', '+00:00'))
-                    if datetime.now() > expiry:
+                    # Parse datetime and make timezone-aware comparison
+                    expiry_str = expires_at.replace('Z', '+00:00')
+                    expiry = datetime.fromisoformat(expiry_str)
+                    # Make current time timezone-aware if expiry is
+                    from datetime import timezone
+                    if expiry.tzinfo is not None:
+                        now = datetime.now(timezone.utc)
+                    else:
+                        now = datetime.now()
+                    if now > expiry:
                         return None
                 
                 # Update cache hits and last accessed

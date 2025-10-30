@@ -7,6 +7,7 @@ from src.llm_client import LLMClient
 from src.capability_registry import CapabilityRegistry
 from supabase import Client
 from config import Config
+from src.utils import extract_json_from_response
 import json
 
 
@@ -32,9 +33,13 @@ class QueryPlanner:
         """
         self.llm_client = llm_client or LLMClient()
         self.registry = registry or CapabilityRegistry()
-        
-        from supabase import create_client
-        self.supabase = supabase_client or create_client(Config.SUPABASE_URL, Config.SUPABASE_KEY)
+
+        # Supabase already imported at module level (line 8)
+        if supabase_client is None:
+            from supabase import create_client
+            self.supabase = create_client(Config.SUPABASE_URL, Config.SUPABASE_KEY)
+        else:
+            self.supabase = supabase_client
     
     def analyze_query(self, user_prompt: str) -> Dict[str, Any]:
         """
@@ -114,21 +119,16 @@ Response: {
         
         try:
             response = self.llm_client._call_llm(messages, temperature=0.1, max_tokens=800)
-            
+
             # Parse JSON response
-            start = response.find('{')
-            end = response.rfind('}') + 1
-            if start == -1 or end == 0:
-                raise json.JSONDecodeError("No JSON object found", response, 0)
-            
-            json_str = response[start:end]
+            json_str = extract_json_from_response(response)
             analysis = json.loads(json_str)
-            
+
             # Add the original prompt
             analysis['original_prompt'] = user_prompt
-            
+
             return analysis
-            
+
         except Exception as e:
             print(f"Query analysis failed: {str(e)}")
             # Fallback to simple execution
@@ -328,12 +328,10 @@ Use this result as needed for the current task. Return a JSON object with the ar
                 
                 try:
                     response = self.llm_client._call_llm(messages, temperature=0.0, max_tokens=300)
-                    start = response.find('{')
-                    end = response.rfind('}') + 1
-                    if start != -1 and end > 0:
-                        args = json.loads(response[start:end])
-                        return args
-                except Exception:
+                    json_str = extract_json_from_response(response)
+                    args = json.loads(json_str)
+                    return args
+                except (ValueError, json.JSONDecodeError):
                     pass
         
         # Fallback: just extract from the sub-task description
