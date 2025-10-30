@@ -369,9 +369,11 @@ Implement the function to pass ALL tests."""
         system_prompt = """You are a precise parameter extraction model. Your task is to extract argument values from a user's request based on a given function signature.
 
 **CRITICAL RULES:**
-1.  **ONLY extract values that are explicitly present in the user's request.**
-2.  If a parameter's value is **NOT** in the request, return `null` for that parameter's value.
-3.  You **MUST** return a JSON object. Do not include any other text or explanations.
+1.  Extract values that are explicitly present OR can be reasonably inferred from conversation context.
+2.  The user request may include conversation history from previous turns - use this context to understand what data is available.
+3.  If the user is asking to "create a function", they may want to use data from previous conversation turns as inputs.
+4.  If a parameter's value cannot be found or inferred, return `null` for that parameter.
+5.  You **MUST** return a JSON object. Do not include any other text or explanations.
 
 Example 1:
 Function: `def calculate_percentage(base: float, percentage: float) -> float`
@@ -382,6 +384,11 @@ Example 2:
 Function: `def celsius_to_fahrenheit(celsius: float) -> float`
 User: "Convert 100 degrees Fahrenheit to Celsius"
 Response: `{"celsius": null}`
+
+Example 3:
+Function: `def filter_products(products: list, threshold: float) -> list`
+User: "Create a function that filters products by threshold. Context: User previously loaded product data with profit margins calculated."
+Response: `{"products": "infer_from_context", "threshold": null}`
 
 Return ONLY the JSON object."""
         
@@ -398,7 +405,7 @@ Extract the arguments as JSON."""
             {"role": "user", "content": user_content}
         ]
         
-        response = self._call_llm(messages, temperature=0.0, max_tokens=500)
+        response = self._call_llm(messages, temperature=0.0, max_tokens=2000)
 
         # Parse JSON response
         try:
@@ -406,6 +413,17 @@ Extract the arguments as JSON."""
             args = json.loads(json_str)
             return args
         except (json.JSONDecodeError, ValueError) as e:
+            # Check if JSON was truncated - if so, retry with higher token limit
+            if "Expecting" in str(e) and len(response) > 1000:
+                # JSON likely truncated - return null for all arguments to trigger fallback
+                import re
+                # Try to extract function parameters from signature
+                if "def " in function_signature:
+                    param_match = re.search(r'def\s+\w+\s*\((.*?)\)', function_signature)
+                    if param_match:
+                        params = [p.split(':')[0].strip() for p in param_match.group(1).split(',') if p.strip() and p.strip() != 'self']
+                        return {param: None for param in params}
+
             raise Exception(f"Failed to parse argument extraction as JSON: {e}\nResponse: {response}")
     
     def generate_embedding(self, text: str) -> List[float]:

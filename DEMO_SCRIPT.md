@@ -37,7 +37,11 @@ I have product data in data/ecommerce_products.csv with columns: product_name, p
 
 ### Prompt 2: Data Analysis Tool Creation
 ```
-Now I need a tool that can identify underperforming products. Create a function that takes a list of products (each with name, price, cost, and margin fields) and a margin_threshold, then returns only products where the margin is below that threshold.
+Now I need a tool that can identify underperforming products.    
+   Create a function that takes a list of products (each with      
+  name, price, cost, and margin fields) and a margin_threshold,    
+   then returns only products where the margin is below that       
+  threshold. Use a threshold of 0.4.
 ```
 
 **What to highlight:**

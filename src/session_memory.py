@@ -124,12 +124,12 @@ class SessionMemoryManager:
             return []
 
     def build_prompt_with_context(self, session_id: Optional[str], user_prompt: str) -> str:
-        """Append the last exchange as context to the prompt if available."""
+        """Append recent conversation history as context to the prompt if available."""
 
         if not session_id:
             return user_prompt
 
-        recent_messages = self.get_recent_messages(session_id, limit=2)
+        recent_messages = self.get_recent_messages(session_id, limit=10)
         if not recent_messages:
             return user_prompt
 

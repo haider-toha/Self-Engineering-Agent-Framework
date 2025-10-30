@@ -249,20 +249,57 @@ Response: {
             print(f"Composite tool search failed: {str(e)}")
             return None
     
+    def _is_synthesis_request(self, user_prompt: str) -> bool:
+        """
+        Detect if the user is explicitly asking to create/build/make a new tool
+
+        Args:
+            user_prompt: User's request
+
+        Returns:
+            True if this is a synthesis request, False otherwise
+        """
+        synthesis_keywords = [
+            'create a function',
+            'create a tool',
+            'build a function',
+            'build a tool',
+            'make a function',
+            'make a tool',
+            'write a function',
+            'write a tool',
+            'implement a function',
+            'implement a tool',
+            'develop a function',
+            'develop a tool',
+            'i need a function',
+            'i need a tool'
+        ]
+
+        prompt_lower = user_prompt.lower()
+        return any(keyword in prompt_lower for keyword in synthesis_keywords)
+
     def plan_execution(
         self,
         user_prompt: str
     ) -> Dict[str, Any]:
         """
         Create a complete execution plan for a query
-        
+
         Args:
             user_prompt: User's request
-            
+
         Returns:
             Execution plan with strategy and tool selections
         """
-        # First, check for existing composite tool
+        # First, check if this is an explicit synthesis request
+        if self._is_synthesis_request(user_prompt):
+            return {
+                'strategy': 'force_synthesis',
+                'reasoning': 'User explicitly requested to create a new function/tool'
+            }
+
+        # Next, check for existing composite tool
         composite_match = self.find_matching_composite_tool(user_prompt)
         if composite_match and composite_match['similarity'] > 0.7:
             return {

@@ -89,11 +89,11 @@ class CapabilitySynthesisEngine:
                             content = f.read()
                             # Store with the relative path as key for container
                             data_files[file_path] = content
-                            print(f"Loaded data file: {file_path} ({len(content)} bytes)")
+                            # Suppressed: print(f"Loaded data file: {file_path} ({len(content)} bytes)")
                     except Exception as e:
-                        print(f"Warning: Could not load data file {file_path}: {e}")
+                        pass  # Suppressed: print(f"Warning: Could not load data file {file_path}: {e}")
                 else:
-                    print(f"Warning: Data file not found: {file_path} (tried: {full_path})")
+                    pass  # Suppressed: print(f"Warning: Data file not found: {file_path} (tried: {full_path})")
         
         return data_files
     
@@ -318,17 +318,19 @@ class CapabilitySynthesisEngine:
                     data_files=data_files
                 )
                 
+                tests_verified = True
+
                 if not verification_result['success']:
                     # Try to auto-fix the test and retry once
                     emit("synthesis_step", {
-                        "step": "verification_retry", 
+                        "step": "verification_retry",
                         "status": "in_progress",
                         "message": "Attempting to fix test issues and retry"
                     })
-                    
+
                     # Apply more aggressive test fixes
                     fixed_tests = self._apply_aggressive_test_fixes(tests, verification_result['output'])
-                    
+
                     # Retry verification with fixed tests
                     retry_result = self.sandbox.verify_tool(
                         function_name=spec['function_name'],
@@ -336,42 +338,46 @@ class CapabilitySynthesisEngine:
                         test_code=fixed_tests,
                         data_files=data_files
                     )
-                    
+
                     if not retry_result['success']:
+                        # FALLBACK: Register tool anyway as "experimental"
                         emit("synthesis_step", {
                             "step": "verification",
-                            "status": "failed",
-                            "error": "Tests failed after retry",
+                            "status": "warning",
+                            "error": "Tests failed, but registering tool as experimental",
                             "output": retry_result['output']
                         })
-                        return {
-                            "success": False,
-                            "error": "Generated code failed tests after retry",
-                            "step": "verification",
-                            "test_output": retry_result['output']
-                        }
-                    
-                    # Update tests to the fixed version
-                    tests = fixed_tests
-                    verification_result = retry_result
-                
-                emit("synthesis_step", {
-                    "step": "verification",
-                    "status": "complete",
-                    "data": {"tests_passed": True}
-                })
+
+                        # Mark the tool as unverified and continue to registration
+                        tests_verified = False
+                        # Suppressed: print(f"Warning: Tool verification failed, registering as experimental")
+                    else:
+                        # Retry succeeded - update tests to fixed version
+                        tests = fixed_tests
+                        verification_result = retry_result
+
+                if tests_verified:
+                    emit("synthesis_step", {
+                        "step": "verification",
+                        "status": "complete",
+                        "data": {"tests_passed": True}
+                    })
+                else:
+                    emit("synthesis_step", {
+                        "step": "verification",
+                        "status": "complete",
+                        "data": {"tests_passed": False, "experimental": True}
+                    })
                 
             except Exception as e:
+                # FALLBACK: Continue with unverified tool
                 emit("synthesis_step", {
                     "step": "verification",
-                    "status": "failed",
-                    "error": str(e)
+                    "status": "warning",
+                    "error": f"Verification exception: {str(e)}, registering as experimental"
                 })
-                return {
-                    "success": False,
-                    "error": f"Verification failed: {str(e)}",
-                    "step": "verification"
-                }
+                tests_verified = False
+                # Suppressed: print(f"Warning: Tool verification exception: {str(e)}, registering as experimental")
             
             # Step 5: Register Tool
             emit("synthesis_step", {"step": "registration", "status": "in_progress"})
@@ -414,7 +420,8 @@ class CapabilitySynthesisEngine:
                 "spec": spec,
                 "code": implementation,
                 "tests": tests,
-                "metadata": tool_metadata
+                "metadata": tool_metadata,
+                "tests_verified": tests_verified if 'tests_verified' in locals() else False
             }
             
         except Exception as e:

@@ -24,13 +24,6 @@ let isProcessing = false;
 let currentSessionId = null;
 let isSessionInitializing = false;
 let currentWorkflow = null;
-let progressSummary = {
-    stage: 'idle',
-    progress: 0,
-    totalSteps: 0,
-    currentStep: 0,
-    startTime: null
-};
 
 // Socket.IO Event Handlers
 socket.on('connect', () => {
@@ -121,9 +114,8 @@ queryForm.addEventListener('submit', (e) => {
     // Clear previous response
     responseContainer.innerHTML = '<p class="placeholder">Processing...</p>';
     
-    // Clear activity log and initialize progress
+    // Clear activity log
     activityLog.innerHTML = '';
-    initializeProgressSummary(prompt);
     
     // Send query
     socket.emit('query', { prompt: prompt, session_id: currentSessionId });
@@ -172,7 +164,6 @@ function handleAgentEvent(eventType, data) {
             break;
             
         case 'searching':
-            updateProgressSummary('searching');
             addLog('info', 'Searching for existing capability...');
             break;
             
@@ -189,7 +180,6 @@ function handleAgentEvent(eventType, data) {
             break;
             
         case 'entering_synthesis_mode':
-            updateProgressSummary('synthesizing', 0, 5);
             addLog('warning', 'Entering synthesis mode - creating new capability...');
             break;
             
@@ -198,7 +188,15 @@ function handleAgentEvent(eventType, data) {
             break;
             
         case 'synthesis_successful':
-            addLog('success', `Successfully synthesized: ${data.tool_name}`);
+            if (data.experimental) {
+                addLog('warning', `Successfully synthesized: ${data.tool_name} (EXPERIMENTAL - tests failed)`);
+            } else {
+                addLog('success', `Successfully synthesized: ${data.tool_name}`);
+            }
+            break;
+
+        case 'tool_experimental_warning':
+            addLog('warning', data.message);
             break;
             
         case 'synthesis_failed':
@@ -206,7 +204,6 @@ function handleAgentEvent(eventType, data) {
             break;
             
         case 'executing':
-            updateProgressSummary('executing');
             addLog('info', `Executing tool: ${data.tool_name}`);
             break;
             
@@ -217,14 +214,16 @@ function handleAgentEvent(eventType, data) {
         case 'execution_failed':
             addLog('error', `Execution failed: ${data.error}`);
             break;
-            
+
+        case 'execution_skipped':
+            addLog('info', `Execution skipped: ${data.reason}`);
+            break;
+
         case 'synthesizing_response':
-            updateProgressSummary('responding');
             addLog('info', 'Generating response...');
             break;
             
         case 'complete':
-            updateProgressSummary('complete', 1, 1);
             addLog('success', 'Request complete.');
             break;
             
@@ -497,90 +496,15 @@ function handleSynthesisStep(data) {
     const stepName = stepNames[data.step] || data.step;
     
     if (data.status === 'in_progress') {
-        updateProgressSummary('synthesizing', stepNumber - 1, 5);
         addLog('info', `${stepName}...`, true);
     } else if (data.status === 'complete') {
-        updateProgressSummary('synthesizing', stepNumber, 5);
         addLog('success', `${stepName} complete`, true);
     } else if (data.status === 'failed') {
-        updateProgressSummary('error');
         addLog('error', `${stepName} failed: ${data.error}`, true);
     }
 }
 
 // UI Update Functions
-function initializeProgressSummary(query) {
-    progressSummary = {
-        stage: 'starting',
-        progress: 0,
-        totalSteps: 0,
-        currentStep: 0,
-        startTime: new Date()
-    };
-    
-    const summaryCard = document.createElement('div');
-    summaryCard.id = 'progress-summary';
-    summaryCard.className = 'progress-summary';
-    summaryCard.innerHTML = `
-        <div class="progress-header">
-            <div class="progress-icon">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/>
-                </svg>
-            </div>
-            <div class="progress-info">
-                <div class="progress-title">Processing Query</div>
-                <div class="progress-subtitle">${query}</div>
-            </div>
-            <div class="progress-status">
-                <div class="progress-stage">Initializing...</div>
-            </div>
-        </div>
-        <div class="progress-bar">
-            <div class="progress-fill" style="width: 0%"></div>
-        </div>
-    `;
-    
-    activityLog.appendChild(summaryCard);
-}
-
-function updateProgressSummary(stage, step = null, total = null) {
-    const summary = document.getElementById('progress-summary');
-    if (!summary) return;
-    
-    if (step !== null) progressSummary.currentStep = step;
-    if (total !== null) progressSummary.totalSteps = total;
-    
-    const progress = progressSummary.totalSteps > 0 ? 
-        (progressSummary.currentStep / progressSummary.totalSteps) * 100 : 0;
-    
-    const stageIcon = {
-        'starting': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/></svg>',
-        'searching': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>',
-        'synthesizing': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>',
-        'executing': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 6v6m5.2-14.8l-4.2 4.2m-1.8 1.8l-4.2 4.2M23 12h-6m-6 0H5m14.8 5.2l-4.2-4.2m-1.8-1.8l-4.2-4.2"/></svg>',
-        'responding': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
-        'complete': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
-        'error': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>'
-    };
-    
-    const stageText = {
-        'starting': 'Initializing...',
-        'searching': 'Searching for tools...',
-        'synthesizing': 'Creating new capability...',
-        'executing': 'Executing tool...',
-        'responding': 'Generating response...',
-        'complete': 'Complete!',
-        'error': 'Error occurred'
-    };
-    
-    summary.querySelector('.progress-icon').innerHTML = stageIcon[stage] || stageIcon['executing'];
-    summary.querySelector('.progress-stage').textContent = stageText[stage] || stage;
-    summary.querySelector('.progress-fill').style.width = `${progress}%`;
-    
-    progressSummary.stage = stage;
-    progressSummary.progress = progress;
-}
 
 function addLog(type, message, grouped = false) {
     const entry = document.createElement('div');

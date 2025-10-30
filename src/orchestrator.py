@@ -160,8 +160,142 @@ class AgentOrchestrator:
             
             # Route based on execution strategy
             strategy = execution_plan['strategy']
-            
-            if strategy == 'composite_tool':
+
+            if strategy == 'force_synthesis':
+                # User explicitly requested to create a new tool
+                # BUT check if a similar tool already exists first
+                existing_tool = self.registry.search_tool(agent_prompt, threshold=0.65)
+
+                if existing_tool:
+                    # Tool already exists - use it instead of re-creating
+                    emit("tool_found", {
+                        "tool_name": existing_tool['name'],
+                        "similarity": existing_tool['similarity_score'],
+                        "message": "Similar tool already exists, using it instead of creating new one"
+                    })
+
+                    # Execute the existing tool
+                    emit("executing", {"tool_name": existing_tool['name']})
+                    execution_result = self.executor.execute_with_retry(
+                        tool_info=existing_tool,
+                        user_prompt=agent_prompt
+                    )
+
+                    if execution_result['success']:
+                        final_response = str(execution_result['result'])
+                        result = {
+                            "success": True,
+                            "response": final_response,
+                            "tool_name": existing_tool['name'],
+                            "tool_result": execution_result['result'],
+                            "reused_existing": True
+                        }
+                    else:
+                        # Existing tool failed - fall through to synthesis
+                        emit("tool_found", {"message": "Existing tool failed, creating new one"})
+                        existing_tool = None
+
+                if not existing_tool:
+                    # No existing tool found or it failed - create new one
+                    emit("no_tool_found", {"query": user_prompt})
+                    emit("entering_synthesis_mode", {})
+
+                    # Synthesize new capability
+                    synthesis_result = self.synthesis_engine.synthesize_capability(
+                        user_prompt=agent_prompt,
+                        callback=callback
+                    )
+
+                    if not synthesis_result['success']:
+                        error = synthesis_result.get('error', 'Unknown error')
+                        emit("synthesis_failed", {
+                            "error": error,
+                            "step": synthesis_result.get('step', 'unknown')
+                        })
+                        error_response = self.synthesizer.synthesize_error(
+                            user_prompt,
+                            f"Failed to create new capability: {error}"
+                        )
+                        result = {
+                            "success": False,
+                            "response": error_response,
+                            "error": error,
+                            "synthesis_failed": True
+                        }
+                    else:
+                        # Synthesis successful - now execute the new tool
+                        tool_name = synthesis_result['tool_name']
+                        tests_verified = synthesis_result.get('tests_verified', False)
+
+                        emit("synthesis_successful", {
+                            "tool_name": tool_name,
+                            "experimental": not tests_verified
+                        })
+
+                        if not tests_verified:
+                            emit("tool_experimental_warning", {
+                                "message": f"Note: '{tool_name}' was registered as experimental (tests failed during verification)"
+                            })
+
+                        new_tool_info = self.registry.get_tool_by_name(tool_name)
+
+                        emit("executing", {"tool_name": tool_name})
+
+                        execution_result = self.executor.execute_with_retry(
+                            tool_info=new_tool_info,
+                            user_prompt=agent_prompt
+                        )
+
+                        if not execution_result['success']:
+                            error = execution_result['error']
+
+                            # If execution failed due to missing arguments in a synthesis request,
+                            # treat it as successful creation (just don't execute)
+                            if execution_result.get("error_type") == "ArgumentError":
+                                emit("execution_skipped", {
+                                    "reason": "Tool created successfully but requires explicit arguments for execution"
+                                })
+
+                                result = {
+                                    "success": True,
+                                    "response": f"Tool '{tool_name}' created successfully! It's ready to use when you provide the required arguments.",
+                                    "tool_name": tool_name,
+                                    "synthesized": True,
+                                    "execution_skipped": True
+                                }
+                            else:
+                                # Other execution errors are real failures
+                                emit("execution_failed", {"error": error})
+                                error_response = self.synthesizer.synthesize_error(user_prompt, error)
+                                result = {
+                                    "success": False,
+                                    "response": error_response,
+                                    "error": error,
+                                    "tool_name": tool_name,
+                                    "synthesized": True
+                                }
+                        else:
+                            tool_result = execution_result['result']
+
+                            emit("execution_complete", {
+                                "tool_name": tool_name,
+                                "result": str(tool_result)
+                            })
+
+                            emit("synthesizing_response", {})
+                            final_response = str(tool_result)
+
+                            emit("complete", {"response": final_response})
+
+                            result = {
+                                "success": True,
+                                "response": final_response,
+                                "tool_name": tool_name,
+                                "tool_result": tool_result,
+                                "synthesized": True
+                            }
+
+            elif strategy == 'composite_tool':
                 # Use existing composite tool
                 result = self._execute_composite_tool(
                     execution_plan['composite_tool'],
@@ -239,7 +373,7 @@ class AgentOrchestrator:
             # NEW: Get policy-driven threshold
             threshold_policy = self.policy_store.get_policy(
                 "retrieval_similarity_threshold",
-                default={"threshold": 0.4, "rerank": True}
+                default={"threshold": 0.7, "rerank": True}
             )
             
             # Search for existing capability with policy-driven settings
@@ -247,7 +381,7 @@ class AgentOrchestrator:
             
             tool_info = self.registry.search_tool(
                 user_prompt,
-                threshold=threshold_policy.get("threshold", 0.4),
+                threshold=threshold_policy.get("threshold", 0.7),
                 rerank=threshold_policy.get("rerank", True)
             )
             
@@ -411,8 +545,18 @@ class AgentOrchestrator:
                 
                 # Synthesis successful - now execute the new tool
                 tool_name = synthesis_result['tool_name']
-                emit("synthesis_successful", {"tool_name": tool_name})
-                
+                tests_verified = synthesis_result.get('tests_verified', False)
+
+                emit("synthesis_successful", {
+                    "tool_name": tool_name,
+                    "experimental": not tests_verified
+                })
+
+                if not tests_verified:
+                    emit("tool_experimental_warning", {
+                        "message": f"Note: '{tool_name}' was registered as experimental (tests failed during verification)"
+                    })
+
                 new_tool_info = self.registry.get_tool_by_name(tool_name)
                 
                 emit("executing", {"tool_name": tool_name})
