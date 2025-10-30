@@ -277,8 +277,15 @@ body {
 }
 
 .progress-icon {
-    font-size: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     animation: pulse 2s infinite;
+}
+
+.progress-icon svg {
+    display: block;
+    color: var(--text-primary);
 }
 
 @keyframes pulse {
@@ -375,8 +382,14 @@ body {
 }
 
 .log-icon {
-    font-size: 14px;
     min-width: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.log-icon svg {
+    display: block;
 }
 
 @keyframes slideIn {
@@ -394,16 +407,32 @@ body {
     border-left-color: var(--info-color);
 }
 
+.log-entry.info .log-icon svg {
+    color: var(--info-color);
+}
+
 .log-entry.success {
     border-left-color: var(--success-color);
+}
+
+.log-entry.success .log-icon svg {
+    color: var(--success-color);
 }
 
 .log-entry.warning {
     border-left-color: var(--warning-color);
 }
 
+.log-entry.warning .log-icon svg {
+    color: var(--warning-color);
+}
+
 .log-entry.error {
     border-left-color: var(--danger-color);
+}
+
+.log-entry.error .log-icon svg {
+    color: var(--danger-color);
 }
 
 .log-time {
@@ -450,7 +479,13 @@ body {
 }
 
 .response-icon {
-    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.response-icon svg {
+    display: block;
 }
 
 .response-actions {
@@ -486,7 +521,13 @@ body {
 }
 
 .copy-icon {
-    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.copy-icon svg {
+    display: block;
 }
 
 .response-body {
@@ -610,6 +651,11 @@ body {
     display: flex;
     align-items: center;
     gap: 8px;
+    color: var(--text-secondary);
+}
+
+.meta-item svg {
+    flex-shrink: 0;
     color: var(--text-secondary);
 }
 

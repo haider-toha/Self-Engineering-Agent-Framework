@@ -319,7 +319,11 @@ function initializeProgressSummary(query) {
     summaryCard.className = 'progress-summary';
     summaryCard.innerHTML = `
         <div class="progress-header">
-            <div class="progress-icon">🚀</div>
+            <div class="progress-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/>
+                </svg>
+            </div>
             <div class="progress-info">
                 <div class="progress-title">Processing Query</div>
                 <div class="progress-subtitle">${query}</div>
@@ -348,13 +352,13 @@ function updateProgressSummary(stage, step = null, total = null) {
         (progressSummary.currentStep / progressSummary.totalSteps) * 100 : 0;
     
     const stageIcon = {
-        'starting': '🚀',
-        'searching': '🔍',
-        'synthesizing': '🔨',
-        'executing': '⚙️',
-        'responding': '💬',
-        'complete': '✅',
-        'error': '❌'
+        'starting': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/></svg>',
+        'searching': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>',
+        'synthesizing': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>',
+        'executing': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 6v6m5.2-14.8l-4.2 4.2m-1.8 1.8l-4.2 4.2M23 12h-6m-6 0H5m14.8 5.2l-4.2-4.2m-1.8-1.8l-4.2-4.2"/></svg>',
+        'responding': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
+        'complete': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
+        'error': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>'
     };
     
     const stageText = {
@@ -367,7 +371,7 @@ function updateProgressSummary(stage, step = null, total = null) {
         'error': 'Error occurred'
     };
     
-    summary.querySelector('.progress-icon').textContent = stageIcon[stage] || '⚙️';
+    summary.querySelector('.progress-icon').innerHTML = stageIcon[stage] || stageIcon['executing'];
     summary.querySelector('.progress-stage').textContent = stageText[stage] || stage;
     summary.querySelector('.progress-fill').style.width = `${progress}%`;
     
@@ -383,16 +387,16 @@ function addLog(type, message, grouped = false) {
     
     // Add better icons for different log types
     const typeIcons = {
-        'info': '📝',
-        'success': '✅',
-        'warning': '⚠️',
-        'error': '❌'
+        'info': '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>',
+        'success': '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
+        'warning': '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+        'error': '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>'
     };
     
     entry.innerHTML = `
         <div class="log-content">
             <div class="log-header">
-                <span class="log-icon">${typeIcons[type] || '📝'}</span>
+                <span class="log-icon">${typeIcons[type] || typeIcons['info']}</span>
                 <span class="log-time">${time}</span>
             </div>
             <div class="log-message">${message}</div>
@@ -414,12 +418,21 @@ function displayResponse(response, metadata) {
         <div class="response-content">
             <div class="response-header">
                 <div class="response-title">
-                    <span class="response-icon">🎆</span>
+                    <span class="response-icon">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                        </svg>
+                    </span>
                     <span>Response</span>
                 </div>
                 <div class="response-actions">
                     <button class="copy-btn" onclick="copyResponse()" title="Copy response">
-                        <span class="copy-icon">📋</span>
+                        <span class="copy-icon">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                            </svg>
+                        </span>
                         Copy
                     </button>
                 </div>
@@ -430,14 +443,21 @@ function displayResponse(response, metadata) {
             ${metadata ? `
                 <div class="response-meta">
                     <div class="meta-item">
-                        <strong>🔧 Tool:</strong> ${toolName} 
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+                        </svg>
+                        <strong>Tool:</strong> ${toolName} 
                         <span class="badge ${isSynthesized ? 'new' : 'existing'}">
                             ${isSynthesized ? 'NEW' : 'EXISTING'}
                         </span>
                     </div>
                     ${metadata.execution_time ? `
                         <div class="meta-item">
-                            <strong>⏱️ Execution Time:</strong> ${metadata.execution_time}ms
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"/>
+                                <polyline points="12 6 12 12 16 14"/>
+                            </svg>
+                            <strong>Execution Time:</strong> ${metadata.execution_time}ms
                         </div>
                     ` : ''}
                 </div>
@@ -482,7 +502,13 @@ function copyResponse() {
     navigator.clipboard.writeText(responseText).then(() => {
         const copyBtn = responseContainer.querySelector('.copy-btn');
         const originalText = copyBtn.innerHTML;
-        copyBtn.innerHTML = '<span class="copy-icon">✓</span> Copied!';
+        copyBtn.innerHTML = `
+            <span class="copy-icon">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"/>
+                </svg>
+            </span>
+            Copied!`;
         copyBtn.classList.add('copied');
         
         setTimeout(() => {

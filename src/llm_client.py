@@ -133,28 +133,33 @@ Example Response:
             for p in spec['parameters']
         ])
         
-        system_prompt = """You are an EXPERT QA engineer focused on BULLETPROOF testing. Write comprehensive pytest tests that catch ALL edge cases.
+        system_prompt = """You are an EXPERT QA engineer focused on BULLETPROOF testing. Write comprehensive pytest tests that are CONSISTENT with robust, production-ready implementations.
+
+**CRITICAL PRINCIPLE: ROBUST FUNCTIONS HANDLE EDGE CASES GRACEFULLY**
+- Modern production functions should NOT crash on edge cases
+- They should return meaningful results or handle errors elegantly
+- Division by zero should return NaN/inf, NOT raise exceptions
+- Missing data should be handled with appropriate defaults
+- Your tests must match this ROBUST behavior expectation
 
 **MANDATORY EDGE CASE COVERAGE:**
-1. **Mathematical Edge Cases**: Division by zero, negative numbers, infinity, NaN, very large/small numbers
-2. **Data Edge Cases**: Empty inputs, None values, missing data, invalid data types
-3. **File/CSV Edge Cases**: Empty files, malformed data, missing columns, zero/negative values in calculations
-4. **Boundary Cases**: Minimum/maximum values, empty collections, single-item collections
-5. **Error Conditions**: Invalid parameters, type mismatches, unexpected formats
+1. **Mathematical Edge Cases**: Division by zero (expect NaN/inf, NOT errors), negative numbers, infinity, NaN
+2. **Data Edge Cases**: Empty inputs, None values, missing data, invalid data types  
+3. **File/CSV Edge Cases**: Missing columns, zero/negative values (handled gracefully)
+4. **Boundary Cases**: Minimum/maximum values, empty datasets (should work, not fail)
+5. **True Error Conditions**: Only test for errors when inputs are fundamentally invalid (None for required params, wrong types)
 
 **REQUIREMENTS:**
-1. Import pytest and any necessary modules (pandas, numpy, etc.)
-2. Import the function being tested (assume it's in the same directory)  
-3. Write AT LEAST 7-10 test functions covering:
-   - **Normal use cases** (2-3 tests)
-   - **Mathematical edge cases** (division by zero, negative values, extreme numbers)
-   - **Data validation edge cases** (None, empty, wrong types)
-   - **Domain-specific edge cases** (for CSV: zero prices, negative margins, missing data)
-   - **Boundary conditions** (min/max values, empty datasets)
+1. Import ALL required modules: pytest, pandas as pd, numpy as np, from io import StringIO
+2. Import the function being tested
+3. Write 7-10 test functions covering:
+   - **Normal use cases** (2-3 tests) - assert success == True
+   - **Mathematical edge cases** - expect graceful handling (NaN for division by zero, NOT errors)
+   - **Data edge cases** - expect graceful handling with appropriate defaults
+   - **Only test failures for truly invalid inputs** (None for required params, fundamentally wrong types)
 4. Use descriptive test function names: `test_function_edge_case_description`
-5. Include assertions with clear failure messages explaining WHAT should happen
-6. For functions returning dictionaries: Test both success and error paths
-7. Return ONLY the Python test code, no explanations
+5. **CONSISTENT ASSERTIONS**: If function returns dict with 'success' key, test BOTH success and result fields
+6. Return ONLY the Python test code, no explanations
 
 **CRITICAL FILE TESTING RULES:**
 - The test environment is READ-ONLY - you CANNOT write any files
@@ -214,7 +219,52 @@ Generate comprehensive pytest tests for this function."""
         response = self._call_llm(messages, temperature=0.3, max_tokens=1500)
 
         # Extract code from markdown blocks if present
-        return extract_code_from_markdown(response)
+        test_code = extract_code_from_markdown(response)
+        
+        # Ensure required imports are present
+        test_code = self._ensure_test_imports(test_code)
+        
+        return test_code
+    
+    def _ensure_test_imports(self, test_code: str) -> str:
+        """
+        Ensure that required imports are present in test code
+        
+        Args:
+            test_code: Generated test code
+            
+        Returns:
+            Test code with required imports added if missing
+        """
+        required_imports = [
+            "import pytest",
+            "import pandas as pd",
+            "import numpy as np", 
+            "from io import StringIO"
+        ]
+        
+        # Check which imports are missing
+        missing_imports = []
+        for imp in required_imports:
+            if imp not in test_code:
+                missing_imports.append(imp)
+        
+        # Add missing imports at the beginning
+        if missing_imports:
+            import_section = "\n".join(missing_imports) + "\n\n"
+            # Find the first non-import line to insert before it
+            lines = test_code.split('\n')
+            insert_index = 0
+            for i, line in enumerate(lines):
+                stripped = line.strip()
+                if stripped and not stripped.startswith(('import ', 'from ')):
+                    insert_index = i
+                    break
+            
+            lines.insert(insert_index, import_section)
+            test_code = '\n'.join(lines)
+        
+        return test_code
     
     def generate_implementation(self, spec: Dict[str, Any], tests: str) -> str:
         """
