@@ -76,15 +76,19 @@ The JSON object must have this exact structure:
 **CRITICAL DESIGN PRINCIPLES:**
 1.  **NEVER** answer the user's request directly.
 2.  **ALWAYS** respond with ONLY the JSON object. No other text, explanations, or markdown formatting.
-3.  **EDGE CASE FIRST THINKING**: Before designing the function, mentally consider ALL potential edge cases:
+3.  **FLEXIBLE INPUT DESIGN**: For CSV/data operations:
+    - Accept `Union[str, pd.DataFrame]` to support both file paths AND in-memory DataFrames
+    - This enables both real-world usage (file paths) and easy testing (DataFrames)
+    - Example: `data_source: Union[str, pd.DataFrame]` instead of just `file_path: str`
+4.  **EDGE CASE FIRST THINKING**: Before designing the function, mentally consider ALL potential edge cases:
     - **Division by zero**: What if denominators are zero?
     - **Empty/null data**: What if inputs are empty, None, or missing?
     - **Invalid data types**: What if wrong types are passed?
     - **File operations**: What if files don't exist or are corrupted?
     - **Mathematical operations**: What about negative numbers, infinity, NaN?
     - **Data boundaries**: What about extremely large/small values?
-4.  **ROBUST RETURN TYPES**: Design return types that can handle partial success/failure
-5.  **COMPREHENSIVE DOCSTRING**: Must explain the function's purpose, parameters, return value, AND explicitly mention how edge cases are handled
+5.  **ROBUST RETURN TYPES**: Design return types that can handle partial success/failure
+6.  **COMPREHENSIVE DOCSTRING**: Must explain the function's purpose, parameters, return value, AND explicitly mention how edge cases are handled
 
 Example Request: "Calculate the percentage of a number"
 
@@ -152,11 +156,13 @@ Example Response:
 6. For functions returning dictionaries: Test both success and error paths
 7. Return ONLY the Python test code, no explanations
 
-**FILE TESTING RULES:**
-- Use ONLY existing data files (like 'data/ecommerce_products.csv')
-- Test with the ACTUAL data that contains real edge cases
-- NEVER create temporary files or use StringIO
-- Focus on how the function handles problematic data in real files
+**CRITICAL FILE TESTING RULES:**
+- The test environment is READ-ONLY - you CANNOT write any files
+- For file-based functions: Pass the file path directly (e.g., "data/ecommerce_products.csv")
+- For edge case testing: Create DataFrames in memory and pass them directly to the function
+- NEVER use df.to_csv() or any file writing operations in tests
+- If the function requires a file path parameter, test with existing files only
+- If the function can accept DataFrames, create test DataFrames in memory
 
 Example format:
 ```python
@@ -165,16 +171,30 @@ import pandas as pd
 from io import StringIO
 from function_name import function_name
 
-def test_function_normal_case():
-    # Use existing files or in-memory data
-    result = function_name(arg1, arg2)
-    assert result == expected, "Description of what should happen"
-
-def test_function_with_csv_file():
-    # Example: Use existing CSV files that are already provided
-    result = function_name("data/ecommerce_products.csv")  # Use actual provided file
+def test_function_with_real_csv_file():
+    # Test with actual file that exists in the sandbox
+    result = function_name("data/ecommerce_products.csv")
     assert result is not None, "Should process existing CSV file"
-    assert isinstance(result, list), "Should return a list of results"
+    if not result.get('success'):
+        print(f"Debug - Error: {result.get('error')}")
+        print(f"Debug - Full result: {result}")
+    assert result['success'] == True, f"Should successfully load file. Error: {result.get('error', 'unknown')}"
+
+def test_function_with_edge_case_data():
+    # For edge cases: Create DataFrame in memory (don't write to file)
+    test_data = pd.DataFrame({
+        'col1': [0, -1, 100],
+        'col2': [1, 2, 0]  # Edge case: zero values
+    })
+    # If function accepts DataFrame, pass it directly
+    result = function_name(test_data)
+    assert result is not None, "Should handle edge case data"
+
+def test_function_division_by_zero():
+    # Test edge case with in-memory data
+    zero_data = pd.DataFrame({'price': [0], 'cost': [10]})
+    result = function_name(zero_data)
+    assert result['success'] == False or result['error'] is not None, "Should handle division by zero"
 ```"""
         
         user_content = f"""Function Specification:
@@ -215,12 +235,16 @@ Generate comprehensive pytest tests for this function."""
         system_prompt = """You are a SENIOR Python developer specializing in PRODUCTION-READY, BULLETPROOF code. Implement a function that passes ALL provided tests with ROBUST error handling.
 
 **CRITICAL IMPLEMENTATION PRINCIPLES:**
-1. **EDGE-CASE FIRST DESIGN**: Handle ALL edge cases explicitly before normal cases
-2. **DEFENSIVE PROGRAMMING**: Validate ALL inputs, assume nothing about data quality
-3. **GRACEFUL FAILURE**: Never crash - return structured error information instead
-4. **MATHEMATICAL SAFETY**: Check for division by zero, NaN, infinity before calculations
-5. **DATA VALIDATION**: Verify data types, check for None/empty values, validate ranges
-6. **FILE SAFETY**: Handle missing files, corrupted data, malformed CSV gracefully
+1. **FLEXIBLE INPUT HANDLING**: For file/data operations, check if input is a file path (str) or DataFrame
+   - If str: Load the file with pd.read_csv() with proper error handling
+   - If DataFrame: Use directly
+   - Example: `if isinstance(data_source, str): df = pd.read_csv(data_source) else: df = data_source`
+2. **EDGE-CASE FIRST DESIGN**: Handle ALL edge cases explicitly before normal cases
+3. **DEFENSIVE PROGRAMMING**: Validate ALL inputs, assume nothing about data quality
+4. **GRACEFUL FAILURE**: Never crash - return structured error information instead
+5. **MATHEMATICAL SAFETY**: Check for division by zero, NaN, infinity before calculations
+6. **DATA VALIDATION**: Verify data types, check for None/empty values, validate ranges
+7. **FILE SAFETY**: Handle missing files, corrupted data, malformed CSV gracefully
 
 **MANDATORY ERROR HANDLING PATTERNS:**
 - **Try-catch blocks** around ALL risky operations (file I/O, math, data access)
