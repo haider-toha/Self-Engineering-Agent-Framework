@@ -25,6 +25,10 @@ socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 # Initialize orchestrator
 try:
     orchestrator = AgentOrchestrator()
+    # Clean up any orphaned tools on startup
+    removed_count = orchestrator.registry.cleanup_orphaned_tools()
+    if removed_count > 0:
+        print(f"Cleaned up {removed_count} orphaned tool(s) from database")
 except Exception as e:
     print(f"Failed to initialize orchestrator: {e}")
     # Create a minimal fallback

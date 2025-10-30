@@ -1,0 +1,24 @@
+{
+  "quarterly_targets": {
+    "Electronics": {
+      "revenue_target": 500000,
+      "margin_threshold": 0.15,
+      "units_target": 1000
+    },
+    "Accessories": {
+      "revenue_target": 150000,
+      "margin_threshold": 0.25,
+      "units_target": 2000
+    },
+    "Furniture": {
+      "revenue_target": 200000,
+      "margin_threshold": 0.20,
+      "units_target": 500
+    }
+  },
+  "promotion_criteria": {
+    "low_margin_threshold": 0.10,
+    "low_sales_threshold": 50,
+    "discount_percentage": 15
+  }
+}

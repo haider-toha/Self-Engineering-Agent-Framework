@@ -1,7 +1,7 @@
 FROM python:3.10-slim
 
-# Install pytest
-RUN pip install --no-cache-dir pytest
+# Install common packages for data processing and testing
+RUN pip install --no-cache-dir pytest pandas numpy openpyxl xlrd
 
 # Set working directory
 WORKDIR /code

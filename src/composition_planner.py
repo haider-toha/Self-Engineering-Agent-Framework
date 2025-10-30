@@ -125,10 +125,13 @@ class CompositionPlanner:
                 results.append(execution_result)
                 tool_sequence.append(tool_info['name'])
                 
+                # Truncate long results for cleaner activity logs
+                result_summary = self._summarize_result(execution_result)
+                
                 emit("workflow_step_complete", {
                     "step": step_num,
                     "tool_name": tool_info['name'],
-                    "result": str(execution_result)
+                    "result": result_summary
                 })
                 
             except Exception as e:
@@ -156,6 +159,48 @@ class CompositionPlanner:
             "tool_sequence": tool_sequence,
             "final_result": results[-1] if results else None
         }
+    
+    def _summarize_result(self, result: Any) -> str:
+        """
+        Create a concise summary of tool execution result for activity logs
+        
+        Args:
+            result: The result to summarize
+            
+        Returns:
+            A concise string summary
+        """
+        if result is None:
+            return "None"
+        
+        result_str = str(result)
+        
+        # If it's a list, show count and type info
+        if isinstance(result, list):
+            if len(result) == 0:
+                return "Empty list"
+            elif len(result) <= 3:
+                return result_str
+            else:
+                # Show count and preview of first item
+                first_item = str(result[0])[:100]
+                if len(first_item) == 100:
+                    first_item += "..."
+                return f"List of {len(result)} items. First: {first_item}"
+        
+        # If it's a dict, show key count
+        elif isinstance(result, dict):
+            if len(result) <= 5:
+                return result_str
+            else:
+                keys = list(result.keys())[:3]
+                return f"Dict with {len(result)} keys: {keys}..."
+        
+        # For strings/numbers, truncate if too long
+        elif len(result_str) > 200:
+            return result_str[:200] + "..."
+        
+        return result_str
     
     def _prepare_arguments(
         self,

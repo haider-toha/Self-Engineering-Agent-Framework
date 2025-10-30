@@ -133,19 +133,29 @@ Requirements:
 4. Use descriptive test function names starting with 'test_'
 5. Include assertions with clear failure messages
 6. Return ONLY the Python test code, no explanations
+7. CRITICAL: Do NOT create new files during testing (filesystem is read-only)
+8. For CSV/file functions: Use ONLY the actual existing data files that are provided (like 'data/ecommerce_products.csv')
+9. NEVER reference non-existent files or try to test file-not-found scenarios 
+10. NEVER use tempfile, file writing, StringIO objects, or any disk operations for testing file path functions
+11. Focus tests on the data processing logic using the provided real data files
 
 Example format:
 ```python
 import pytest
+import pandas as pd
+from io import StringIO
 from function_name import function_name
 
 def test_function_normal_case():
+    # Use existing files or in-memory data
     result = function_name(arg1, arg2)
     assert result == expected, "Description of what should happen"
 
-def test_function_edge_case():
-    # Test edge case
-    ...
+def test_function_with_csv_file():
+    # Example: Use existing CSV files that are already provided
+    result = function_name("data/ecommerce_products.csv")  # Use actual provided file
+    assert result is not None, "Should process existing CSV file"
+    assert isinstance(result, list), "Should return a list of results"
 ```"""
         
         user_content = f"""Function Specification:

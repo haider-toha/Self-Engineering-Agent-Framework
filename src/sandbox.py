@@ -75,7 +75,7 @@ class SecureSandbox:
             print(f"Docker image '{self.image_name}' not found. Building it now...")
             return self.build_image()
     
-    def verify_tool(self, function_name: str, function_code: str, test_code: str) -> Dict[str, Any]:
+    def verify_tool(self, function_name: str, function_code: str, test_code: str, data_files: Dict[str, str] = None) -> Dict[str, Any]:
         """
         Verify a tool by running its tests in an isolated Docker container
         
@@ -83,6 +83,7 @@ class SecureSandbox:
             function_name: The name of the function to test
             function_code: Python function implementation
             test_code: Pytest test code
+            data_files: Optional dict of filename -> content for test data files
             
         Returns:
             Dictionary with 'success' (bool) and 'output' (str) keys
@@ -121,6 +122,23 @@ class SecureSandbox:
             with open(test_file, 'w', encoding='utf-8') as f:
                 f.write(modified_test_code)
             
+            # Copy any data files to temp directory
+            if data_files:
+                for filename, content in data_files.items():
+                    # Flatten the path - put all data files in root of temp directory
+                    # This avoids issues with subdirectories in read-only mounts
+                    file_basename = os.path.basename(filename)
+                    data_file_path = os.path.join(temp_dir, file_basename)
+                    with open(data_file_path, 'w', encoding='utf-8') as f:
+                        f.write(content)
+                    
+                    # Also create with original path structure if it contains subdirectories
+                    if filename != file_basename:
+                        full_path = os.path.join(temp_dir, filename)
+                        os.makedirs(os.path.dirname(full_path), exist_ok=True)
+                        with open(full_path, 'w', encoding='utf-8') as f:
+                            f.write(content)
+            
             # Run container with mounted volume
             try:
                 # Create and run container
@@ -146,12 +164,22 @@ class SecureSandbox:
                 # Remove container
                 container.remove(force=True)
                 
-                # Return result
+                # Return result with enhanced debugging info
                 success = exit_code == 0
+                
+                # Add debug information
+                debug_info = []
+                if data_files:
+                    debug_info.append(f"Data files loaded: {list(data_files.keys())}")
+                debug_info.append(f"Exit code: {exit_code}")
+                debug_info.append(f"Container logs:")
+                debug_info.append("-" * 40)
+                
+                enhanced_output = "\n".join(debug_info) + "\n" + output
                 
                 return {
                     "success": success,
-                    "output": output,
+                    "output": enhanced_output,
                     "exit_code": exit_code
                 }
                 

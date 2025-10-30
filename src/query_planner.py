@@ -57,9 +57,15 @@ class QueryPlanner:
         """
         system_prompt = """You are a query analysis expert. Analyze user requests to determine if they require multiple steps or tools.
 
+IMPORTANT: Before breaking a request into multiple steps, consider if a SINGLE TOOL might handle the entire request.
+For example:
+- "Load CSV and calculate profit margins" = Single tool that loads and calculates
+- "Read file and process data" = Single tool operation  
+- "Get data and analyze it" = Single tool operation
+
 Your task is to identify:
 1. Whether the request is simple (single tool) or complex (multiple tools/steps)
-2. If complex, break it down into specific sub-tasks
+2. If complex, break it down into specific sub-tasks ONLY if they truly need separate tools
 3. Determine if tools need to be chained (output of one feeds into another)
 
 Return ONLY a JSON object with this structure:
@@ -86,6 +92,15 @@ Response: {
     "requires_composition": false,
     "execution_strategy": "single",
     "reasoning": "Simple single calculation"
+}
+
+User: "Load CSV file and calculate profit margins"
+Response: {
+    "is_complex": false,
+    "sub_tasks": [{"task": "Load CSV file and calculate profit margins", "order": 1, "depends_on": null}],
+    "requires_composition": false,
+    "execution_strategy": "single",
+    "reasoning": "Single operation - loading and calculating can be done by one tool"
 }
 
 User: "Calculate 25% of 100, then reverse the result as a string"
@@ -274,6 +289,22 @@ Response: {
                 'strategy': 'single_tool',
                 'analysis': analysis,
                 'reasoning': 'Query requires single tool execution'
+            }
+        
+        # Before proceeding with multi-tool execution, check if a single tool can handle it
+        single_tool_match = self.registry.search_tool(user_prompt)
+        if single_tool_match and single_tool_match['similarity_score'] > 0.6:
+            # A single tool can handle this better than decomposing
+            return {
+                'strategy': 'single_tool',
+                'analysis': {
+                    'is_complex': False,
+                    'sub_tasks': [{'task': user_prompt, 'order': 1, 'depends_on': None}],
+                    'requires_composition': False,
+                    'execution_strategy': 'single',
+                    'reasoning': f'Single tool found that can handle the request'
+                },
+                'reasoning': f'Found single tool "{single_tool_match["name"]}" that can handle the entire request'
             }
         
         # Complex query - need multi-tool execution

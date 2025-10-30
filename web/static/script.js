@@ -17,6 +17,14 @@ const statusIndicator = document.getElementById('status');
 
 // State
 let isProcessing = false;
+let currentWorkflow = null;
+let progressSummary = {
+    stage: 'idle',
+    progress: 0,
+    totalSteps: 0,
+    currentStep: 0,
+    startTime: null
+};
 
 // Socket.IO Event Handlers
 socket.on('connect', () => {
@@ -80,8 +88,9 @@ queryForm.addEventListener('submit', (e) => {
     // Clear previous response
     responseContainer.innerHTML = '<p class="placeholder">Processing...</p>';
     
-    // Clear activity log
+    // Clear activity log and initialize progress
     activityLog.innerHTML = '';
+    initializeProgressSummary(prompt);
     
     // Send query
     socket.emit('query', { prompt: prompt });
@@ -112,6 +121,7 @@ function handleAgentEvent(eventType, data) {
             break;
             
         case 'searching':
+            updateProgressSummary('searching');
             addLog('info', 'Searching for existing capability...');
             break;
             
@@ -128,6 +138,7 @@ function handleAgentEvent(eventType, data) {
             break;
             
         case 'entering_synthesis_mode':
+            updateProgressSummary('synthesizing', 0, 5);
             addLog('warning', 'Entering synthesis mode - creating new capability...');
             break;
             
@@ -144,6 +155,7 @@ function handleAgentEvent(eventType, data) {
             break;
             
         case 'executing':
+            updateProgressSummary('executing');
             addLog('info', `Executing tool: ${data.tool_name}`);
             break;
             
@@ -156,10 +168,12 @@ function handleAgentEvent(eventType, data) {
             break;
             
         case 'synthesizing_response':
+            updateProgressSummary('responding');
             addLog('info', 'Generating natural language response...');
             break;
             
         case 'complete':
+            updateProgressSummary('complete', 1, 1);
             addLog('success', 'Request complete.');
             break;
             
@@ -169,36 +183,39 @@ function handleAgentEvent(eventType, data) {
         
         // Workflow & Composition Events
         case 'planning_query':
-            addLog('info', '🧠 Analyzing query complexity...');
+            // Skip this verbose message for cleaner logs
             break;
         
         case 'plan_complete':
-            addLog('success', `📋 Execution plan: ${data.strategy} - ${data.reasoning}`);
+            // Only log for complex strategies to reduce verbosity
+            if (data.strategy !== 'single_tool') {
+                addLog('success', `Execution plan: ${data.strategy} - ${data.reasoning}`);
+            }
             break;
         
         case 'using_composite_tool':
-            addLog('success', `⚡ Using composite tool: ${data.tool_name}`);
+            addLog('success', `Using composite tool: ${data.tool_name}`);
             addLog('info', `   Components: ${data.component_tools.join(' → ')}`);
             break;
         
         case 'using_workflow_pattern':
-            addLog('success', `🔄 Using workflow pattern: ${data.pattern_name}`);
+            addLog('success', `Using workflow pattern: ${data.pattern_name}`);
             addLog('info', `   Sequence: ${data.tool_sequence.join(' → ')}`);
             break;
         
         case 'multi_tool_workflow':
-            addLog('info', `🔗 Multi-tool workflow detected: ${data.num_tasks} steps`);
+            addLog('info', `Multi-tool workflow detected: ${data.num_tasks} steps`);
             break;
         
         case 'workflow_start':
-            addLog('info', `▶️ Starting workflow with ${data.total_steps} step(s)`);
+            addLog('info', `Starting workflow with ${data.total_steps} step(s)`);
             data.tasks.forEach((task, idx) => {
                 addLog('info', `   ${idx + 1}. ${task}`);
             });
             break;
         
         case 'workflow_step':
-            addLog('info', `⚙️ Step ${data.step}/${data.total}: ${data.task}`);
+            addLog('info', `Step ${data.step}/${data.total}: ${data.task}`);
             break;
         
         case 'workflow_step_tool_found':
@@ -210,24 +227,29 @@ function handleAgentEvent(eventType, data) {
             break;
         
         case 'workflow_step_complete':
-            addLog('success', `   ✓ Step complete: ${data.result}`);
+            // Truncate long results for better readability
+            let result = data.result;
+            if (typeof result === 'string' && result.length > 200) {
+                result = result.substring(0, 200) + '...';
+            }
+            addLog('success', `   Step complete: ${result}`);
             break;
         
         case 'workflow_step_failed':
-            addLog('error', `   ✗ Step failed: ${data.error}`);
+            addLog('error', `   Step failed: ${data.error}`);
             break;
         
         case 'workflow_step_needs_synthesis':
-            addLog('warning', `   ⚠️ Step ${data.step} needs new tool creation`);
+            addLog('warning', `   Step ${data.step} needs new tool creation`);
             break;
         
         case 'workflow_complete':
-            addLog('success', `✅ Workflow complete! ${data.total_steps} steps executed`);
+            addLog('success', `Workflow complete! ${data.total_steps} steps executed`);
             addLog('info', `   Tool sequence: ${data.tool_sequence.join(' → ')}`);
             break;
         
         case 'pattern_execution_start':
-            addLog('info', `🎯 Executing pattern: ${data.pattern_name}`);
+            addLog('info', `Executing pattern: ${data.pattern_name}`);
             break;
         
         case 'pattern_step':
@@ -239,19 +261,19 @@ function handleAgentEvent(eventType, data) {
             break;
         
         case 'pattern_execution_complete':
-            addLog('success', `✅ Pattern complete: ${data.pattern_name}`);
+            addLog('success', `Pattern complete: ${data.pattern_name}`);
             break;
         
         case 'workflow_needs_synthesis':
-            addLog('warning', `⚠️ Workflow requires new tool at step ${data.step_failed}`);
+            addLog('warning', `Workflow requires new tool at step ${data.step_failed}`);
             break;
         
         case 'workflow_step_synthesizing':
-            addLog('info', `🔨 Creating new tool for step ${data.step}: ${data.task}`);
+            addLog('info', `Creating new tool for step ${data.step}: ${data.task}`);
             break;
         
         case 'workflow_retry':
-            addLog('success', `🔄 Retrying workflow - ${data.reason}`);
+            addLog('success', `Retrying workflow - ${data.reason}`);
             break;
     }
 }
@@ -265,27 +287,116 @@ function handleSynthesisStep(data) {
         'registration': 'Registering new tool'
     };
     
+    const stepOrder = ['specification', 'tests', 'implementation', 'verification', 'registration'];
+    const stepNumber = stepOrder.indexOf(data.step) + 1;
+    
     const stepName = stepNames[data.step] || data.step;
     
     if (data.status === 'in_progress') {
-        addLog('info', `${stepName}...`);
+        updateProgressSummary('synthesizing', stepNumber - 1, 5);
+        addLog('info', `${stepName}...`, true);
     } else if (data.status === 'complete') {
-        addLog('success', `${stepName} complete`);
+        updateProgressSummary('synthesizing', stepNumber, 5);
+        addLog('success', `${stepName} complete`, true);
     } else if (data.status === 'failed') {
-        addLog('error', `${stepName} failed: ${data.error}`);
+        updateProgressSummary('error');
+        addLog('error', `${stepName} failed: ${data.error}`, true);
     }
 }
 
 // UI Update Functions
-function addLog(type, message) {
+function initializeProgressSummary(query) {
+    progressSummary = {
+        stage: 'starting',
+        progress: 0,
+        totalSteps: 0,
+        currentStep: 0,
+        startTime: new Date()
+    };
+    
+    const summaryCard = document.createElement('div');
+    summaryCard.id = 'progress-summary';
+    summaryCard.className = 'progress-summary';
+    summaryCard.innerHTML = `
+        <div class="progress-header">
+            <div class="progress-icon">🚀</div>
+            <div class="progress-info">
+                <div class="progress-title">Processing Query</div>
+                <div class="progress-subtitle">${query}</div>
+            </div>
+            <div class="progress-status">
+                <div class="progress-stage">Initializing...</div>
+                <div class="progress-time">Started ${new Date().toLocaleTimeString()}</div>
+            </div>
+        </div>
+        <div class="progress-bar">
+            <div class="progress-fill" style="width: 0%"></div>
+        </div>
+    `;
+    
+    activityLog.appendChild(summaryCard);
+}
+
+function updateProgressSummary(stage, step = null, total = null) {
+    const summary = document.getElementById('progress-summary');
+    if (!summary) return;
+    
+    if (step !== null) progressSummary.currentStep = step;
+    if (total !== null) progressSummary.totalSteps = total;
+    
+    const progress = progressSummary.totalSteps > 0 ? 
+        (progressSummary.currentStep / progressSummary.totalSteps) * 100 : 0;
+    
+    const stageIcon = {
+        'starting': '🚀',
+        'searching': '🔍',
+        'synthesizing': '🔨',
+        'executing': '⚙️',
+        'responding': '💬',
+        'complete': '✅',
+        'error': '❌'
+    };
+    
+    const stageText = {
+        'starting': 'Initializing...',
+        'searching': 'Searching for tools...',
+        'synthesizing': 'Creating new capability...',
+        'executing': 'Executing tool...',
+        'responding': 'Generating response...',
+        'complete': 'Complete!',
+        'error': 'Error occurred'
+    };
+    
+    summary.querySelector('.progress-icon').textContent = stageIcon[stage] || '⚙️';
+    summary.querySelector('.progress-stage').textContent = stageText[stage] || stage;
+    summary.querySelector('.progress-fill').style.width = `${progress}%`;
+    
+    progressSummary.stage = stage;
+    progressSummary.progress = progress;
+}
+
+function addLog(type, message, grouped = false) {
     const entry = document.createElement('div');
-    entry.className = `log-entry ${type}`;
+    entry.className = `log-entry ${type} ${grouped ? 'grouped' : ''}`;
     
     const time = new Date().toLocaleTimeString();
     
+    // Add better icons for different log types
+    const typeIcons = {
+        'info': '📝',
+        'success': '✅',
+        'warning': '⚠️',
+        'error': '❌'
+    };
+    
     entry.innerHTML = `
-        <span class="log-time">${time}</span>
-        <span class="log-message">${message}</span>
+        <div class="log-content">
+            <div class="log-header">
+                <span class="log-icon">${typeIcons[type] || '📝'}</span>
+                <span class="log-time">${time}</span>
+            </div>
+            <div class="log-message">${message}</div>
+        </div>
     `;
     
     activityLog.appendChild(entry);
@@ -296,19 +407,91 @@ function displayResponse(response, metadata) {
     const isSynthesized = metadata.synthesized;
     const toolName = metadata.tool_name;
     
+    // Enhanced response with better formatting
+    const formattedResponse = formatResponse(response);
+    
     responseContainer.innerHTML = `
         <div class="response-content">
-            <p>${response}</p>
+            <div class="response-header">
+                <div class="response-title">
+                    <span class="response-icon">🎆</span>
+                    <span>Response</span>
+                </div>
+                <div class="response-actions">
+                    <button class="copy-btn" onclick="copyResponse()" title="Copy response">
+                        <span class="copy-icon">📋</span>
+                        Copy
+                    </button>
+                </div>
+            </div>
+            <div class="response-body">
+                ${formattedResponse}
+            </div>
             ${metadata ? `
                 <div class="response-meta">
-                    <strong>Tool:</strong> ${toolName} 
-                    <span class="badge ${isSynthesized ? 'new' : 'existing'}">
-                        ${isSynthesized ? 'NEW' : 'EXISTING'}
-                    </span>
+                    <div class="meta-item">
+                        <strong>🔧 Tool:</strong> ${toolName} 
+                        <span class="badge ${isSynthesized ? 'new' : 'existing'}">
+                            ${isSynthesized ? 'NEW' : 'EXISTING'}
+                        </span>
+                    </div>
+                    ${metadata.execution_time ? `
+                        <div class="meta-item">
+                            <strong>⏱️ Execution Time:</strong> ${metadata.execution_time}ms
+                        </div>
+                    ` : ''}
                 </div>
             ` : ''}
         </div>
     `;
+}
+
+function formatResponse(response) {
+    // Handle different response formats
+    if (typeof response !== 'string') {
+        response = JSON.stringify(response, null, 2);
+    }
+    
+    // Convert markdown-style formatting
+    let formatted = response
+        // Bold text
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        // Code blocks
+        .replace(/```([\s\S]*?)```/g, '<pre class="code-block"><code>$1</code></pre>')
+        // Inline code
+        .replace(/`([^`]+)`/g, '<code class="inline-code">$1</code>')
+        // Lists
+        .replace(/^- (.+)$/gm, '<li>$1</li>');
+    
+    // Wrap lists in ul tags
+    if (formatted.includes('<li>')) {
+        formatted = formatted.replace(/(<li>.*<\/li>)/s, '<ul class="response-list">$1</ul>');
+    }
+    
+    // Handle percentage data (like the profit margins example)
+    formatted = formatted.replace(/(\d+\.\d+%)/g, '<span class="percentage">$1</span>');
+    
+    // Handle product names or items in quotes
+    formatted = formatted.replace(/"([^"]+)"/g, '<span class="quoted-text">"$1"</span>');
+    
+    return `<div class="formatted-response">${formatted}</div>`;
+}
+
+function copyResponse() {
+    const responseText = responseContainer.querySelector('.response-body').textContent;
+    navigator.clipboard.writeText(responseText).then(() => {
+        const copyBtn = responseContainer.querySelector('.copy-btn');
+        const originalText = copyBtn.innerHTML;
+        copyBtn.innerHTML = '<span class="copy-icon">✓</span> Copied!';
+        copyBtn.classList.add('copied');
+        
+        setTimeout(() => {
+            copyBtn.innerHTML = originalText;
+            copyBtn.classList.remove('copied');
+        }, 2000);
+    }).catch(err => {
+        console.error('Failed to copy response:', err);
+    });
 }
 
 function displayError(errorMessage) {

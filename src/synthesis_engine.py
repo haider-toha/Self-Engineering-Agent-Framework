@@ -2,6 +2,8 @@
 Capability Synthesis Engine - Creates new tools using Test-Driven Development
 """
 
+import os
+import re
 from typing import Dict, Any, Optional, Callable
 from src.llm_client import LLMClient
 from src.sandbox import SecureSandbox
@@ -37,6 +39,63 @@ class CapabilitySynthesisEngine:
         self.llm_client = llm_client or LLMClient()
         self.sandbox = sandbox or SecureSandbox()
         self.registry = registry or CapabilityRegistry()
+    
+    def _detect_and_load_data_files(self, user_prompt: str, test_code: str) -> Dict[str, str]:
+        """
+        Detect data file references in the prompt and test code, then load them
+        
+        Args:
+            user_prompt: The user's request
+            test_code: Generated test code
+            
+        Returns:
+            Dictionary of filename -> file content
+        """
+        data_files = {}
+        
+        # Look for file references in prompt and test code
+        file_patterns = [
+            r'data/[\w\-\.]+\.csv',
+            r'data/[\w\-\.]+\.json',
+            r'data/[\w\-\.]+\.xlsx?',
+            r'[\w\-\.]+\.csv',
+            r'[\w\-\.]+\.json',
+            r'[\w\-\.]+\.xlsx?',
+            r'["\'][^"\'\n]*\.[a-zA-Z0-9]+["\']'  # Quoted file paths
+        ]
+        
+        text_to_search = f"{user_prompt}\n{test_code}"
+        
+        for pattern in file_patterns:
+            matches = re.findall(pattern, text_to_search)
+            for match in matches:
+                # Clean up the match (remove quotes if present)
+                file_path = match.strip('"\'')
+                
+                # Skip if it's not a data file extension
+                if not any(file_path.endswith(ext) for ext in ['.csv', '.json', '.xlsx', '.xls']):
+                    continue
+                
+                if not os.path.isabs(file_path):
+                    # Try relative to project root
+                    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                    full_path = os.path.join(project_root, file_path)
+                else:
+                    full_path = file_path
+                
+                if os.path.exists(full_path):
+                    try:
+                        with open(full_path, 'r', encoding='utf-8') as f:
+                            content = f.read()
+                            # Store with the relative path as key for container
+                            data_files[file_path] = content
+                            print(f"Loaded data file: {file_path} ({len(content)} bytes)")
+                    except Exception as e:
+                        print(f"Warning: Could not load data file {file_path}: {e}")
+                else:
+                    print(f"Warning: Data file not found: {file_path} (tried: {full_path})")
+        
+        return data_files
     
     def synthesize_capability(
         self,
@@ -130,10 +189,14 @@ class CapabilitySynthesisEngine:
             emit("synthesis_step", {"step": "verification", "status": "in_progress"})
             
             try:
+                # Detect and load any data files needed for testing
+                data_files = self._detect_and_load_data_files(user_prompt, tests)
+                
                 verification_result = self.sandbox.verify_tool(
                     function_name=spec['function_name'],
                     function_code=implementation,
-                    test_code=tests
+                    test_code=tests,
+                    data_files=data_files
                 )
                 
                 if not verification_result['success']:

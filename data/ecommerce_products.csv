@@ -1,0 +1,19 @@
+product_name,price,cost,category,units_sold,rating
+Pro DSLR Camera,1299.99,950.00,Electronics,45,4.8
+Wireless Gaming Mouse,79.99,35.50,Electronics,234,4.6
+Mechanical Keyboard RGB,189.99,85.00,Electronics,156,4.7
+4K Gaming Monitor,899.99,720.00,Electronics,89,4.5
+USB-C Docking Station,149.99,75.00,Electronics,67,4.3
+Bluetooth Headphones,249.99,120.00,Electronics,178,4.4
+Laptop Stand Aluminum,59.99,25.00,Accessories,345,4.2
+Phone Case Premium,29.99,8.50,Accessories,567,4.1
+Wireless Charger Pad,39.99,18.00,Accessories,234,4.0
+Cable Management Kit,19.99,12.00,Accessories,123,3.9
+Ergonomic Office Chair,399.99,280.00,Furniture,78,4.6
+Standing Desk Electric,699.99,450.00,Furniture,34,4.8
+Monitor Arm Dual,129.99,65.00,Furniture,89,4.4
+Desk Organizer Bamboo,34.99,15.00,Furniture,156,4.2
+LED Desk Lamp Smart,89.99,40.00,Furniture,98,4.3
+Broken Price Item,0.00,25.00,Electronics,0,1.0
+Negative Margin Product,50.00,75.00,Accessories,12,2.5
+High Cost Low Price,100.00,150.00,Electronics,5,2.0

@@ -398,9 +398,12 @@ class AgentOrchestrator:
                 
                 tool_result = execution_result['result']
                 
+                # Create concise summary for activity log
+                result_summary = self._summarize_result(tool_result)
+                
                 emit("execution_complete", {
                     "tool_name": tool_name,
-                    "result": str(tool_result)
+                    "result": result_summary
                 })
                 
                 emit("synthesizing_response", {})
@@ -484,6 +487,48 @@ class AgentOrchestrator:
         else:
             # Fallback to single tool execution
             return self._execute_single_tool(user_prompt, emit, start_time, callback)
+    
+    def _summarize_result(self, result: Any) -> str:
+        """
+        Create a concise summary of tool execution result for activity logs
+        
+        Args:
+            result: The result to summarize
+            
+        Returns:
+            A concise string summary
+        """
+        if result is None:
+            return "None"
+        
+        result_str = str(result)
+        
+        # If it's a list, show count and type info
+        if isinstance(result, list):
+            if len(result) == 0:
+                return "Empty list"
+            elif len(result) <= 3:
+                return result_str
+            else:
+                # Show count and preview of first item
+                first_item = str(result[0])[:100]
+                if len(first_item) == 100:
+                    first_item += "..."
+                return f"List of {len(result)} items. First: {first_item}"
+        
+        # If it's a dict, show key count
+        elif isinstance(result, dict):
+            if len(result) <= 5:
+                return result_str
+            else:
+                keys = list(result.keys())[:3]
+                return f"Dict with {len(result)} keys: {keys}..."
+        
+        # For strings/numbers, truncate if too long
+        elif len(result_str) > 200:
+            return result_str[:200] + "..."
+        
+        return result_str
     
     def _execute_workflow_pattern(
         self,
