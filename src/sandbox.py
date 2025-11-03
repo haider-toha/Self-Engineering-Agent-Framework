@@ -238,7 +238,7 @@ if __name__ == "__main__":
     print("Testing sandbox...")
     
     if sandbox.test_sandbox():
-        print("✓ Sandbox is working correctly!")
+        print(" Sandbox is working correctly!")
     else:
         print("✗ Sandbox test failed")
 

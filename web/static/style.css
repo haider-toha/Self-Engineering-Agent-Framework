@@ -899,6 +899,158 @@ body {
     margin-top: 80px;
 }
 
+/* Data Table Styling */
+.data-table-container {
+    overflow-x: auto;
+    margin: 16px 0;
+    border-radius: 8px;
+    border: 1px solid var(--border-primary);
+    background: var(--bg-secondary);
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+.data-table thead {
+    background: var(--bg-tertiary);
+    border-bottom: 1px solid var(--border-secondary);
+}
+
+.data-table th {
+    padding: 12px 16px;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 0.8125rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-right: 1px solid var(--border-primary);
+}
+
+.data-table th:last-child {
+    border-right: none;
+}
+
+.data-table tbody tr {
+    border-bottom: 1px solid var(--border-primary);
+    transition: background-color 0.15s ease;
+}
+
+.data-table tbody tr:hover {
+    background: var(--bg-tertiary);
+}
+
+.data-table tbody tr:last-child {
+    border-bottom: none;
+}
+
+.data-table td {
+    padding: 12px 16px;
+    color: var(--text-secondary);
+    border-right: 1px solid var(--border-primary);
+    vertical-align: top;
+}
+
+.data-table td:last-child {
+    border-right: none;
+}
+
+/* Data Type Formatting */
+.percentage {
+    color: var(--success-color);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+}
+
+.percentage.negative {
+    color: var(--danger-color);
+}
+
+.currency {
+    color: var(--info-color);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+}
+
+.number {
+    color: var(--text-primary);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+}
+
+.rating {
+    color: var(--warning-color);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+}
+
+.quantity {
+    color: var(--text-secondary);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Data Object Styling */
+.data-object {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: 8px;
+    padding: 16px;
+    margin: 16px 0;
+}
+
+.data-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border-primary);
+}
+
+.data-row:last-child {
+    border-bottom: none;
+}
+
+.data-label {
+    color: var(--text-secondary);
+    font-weight: 500;
+    font-size: 0.875rem;
+}
+
+.data-value {
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+/* Error Response Styling */
+.error-response {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid var(--danger-color);
+    border-radius: 8px;
+    padding: 16px;
+    margin: 16px 0;
+    color: var(--danger-color);
+}
+
+.error-response strong {
+    color: var(--danger-color);
+}
+
+/* Response Enhancement */
+.formatted-response {
+    color: var(--text-primary);
+    line-height: 1.6;
+}
+
+.formatted-response .quoted-text {
+    color: var(--accent-primary);
+    font-weight: 500;
+}
+
 /* Scrollbar Styling */
 ::-webkit-scrollbar {
     width: 8px;
@@ -979,6 +1131,40 @@ body {
 
     .tools-list {
         grid-template-columns: 1fr;
+    }
+
+    /* Mobile Data Table Styling */
+    .data-table-container {
+        margin: 12px 0;
+    }
+
+    .data-table {
+        font-size: 0.8125rem;
+    }
+
+    .data-table th,
+    .data-table td {
+        padding: 8px 12px;
+    }
+
+    .data-table th {
+        font-size: 0.75rem;
+    }
+
+    .data-object {
+        padding: 12px;
+        margin: 12px 0;
+    }
+
+    .data-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+        padding: 12px 0;
+    }
+
+    .data-label {
+        font-size: 0.8125rem;
     }
 }
 

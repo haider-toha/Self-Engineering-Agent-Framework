@@ -442,7 +442,7 @@ if __name__ == "__main__":
     result = engine.synthesize_capability("Calculate the factorial of a number")
     
     if result['success']:
-        print(f"✓ Successfully synthesized tool: {result['tool_name']}")
+        print(f" Successfully synthesized tool: {result['tool_name']}")
     else:
         print(f"✗ Synthesis failed at {result.get('step', 'unknown')}: {result.get('error', 'Unknown error')}")
 

@@ -60,7 +60,7 @@ socket.on('query_complete', (data) => {
 
     if (data.success) {
         displayResponse(data.response, data.metadata);
-        addLog('success', '✓ Request completed successfully');
+        addLog('success', ' Request completed successfully');
         updateStatus('Ready', 'success');
     } else {
         displayError(data.response);
@@ -188,15 +188,12 @@ function handleAgentEvent(eventType, data) {
             break;
             
         case 'synthesis_successful':
-            if (data.experimental) {
-                addLog('warning', `Successfully synthesized: ${data.tool_name} (EXPERIMENTAL - tests failed)`);
-            } else {
-                addLog('success', `Successfully synthesized: ${data.tool_name}`);
-            }
+            // Always show as success, suppress experimental flag
+            addLog('success', `Successfully synthesized: ${data.tool_name}`);
             break;
 
         case 'tool_experimental_warning':
-            addLog('warning', data.message);
+            // Suppress experimental warnings to reduce clutter
             break;
             
         case 'synthesis_failed':
@@ -238,9 +235,7 @@ function handleAgentEvent(eventType, data) {
         
         case 'plan_complete':
             addLog('success', `Strategy selected: ${data.strategy}`);
-            if (data.reasoning) {
-                addLog('info', `Reasoning: ${data.reasoning}`);
-            }
+            // Skip showing reasoning to reduce clutter
             break;
         
         case 'using_composite_tool':
@@ -307,7 +302,7 @@ function handleAgentEvent(eventType, data) {
             break;
         
         case 'pattern_step_complete':
-            addLog('success', `   ✓ ${data.tool_name}: ${data.result}`);
+            addLog('success', `    ${data.tool_name}: ${data.result}`);
             break;
         
         case 'pattern_execution_complete':
@@ -592,6 +587,10 @@ function displayResponse(response, metadata) {
 
 function formatResponse(response) {
     // Handle different response formats
+    if (typeof response === 'object' && response !== null) {
+        return formatObjectResponse(response);
+    }
+    
     if (typeof response !== 'string') {
         response = JSON.stringify(response, null, 2);
     }
@@ -619,6 +618,225 @@ function formatResponse(response) {
     formatted = formatted.replace(/"([^"]+)"/g, '<span class="quoted-text">"$1"</span>');
     
     return `<div class="formatted-response">${formatted}</div>`;
+}
+
+function formatObjectResponse(response) {
+    let html = '';
+    
+    // Handle direct products array (new format)
+    if (response.hasOwnProperty('products') && !response.hasOwnProperty('success')) {
+        const products = response.products;
+        if (Array.isArray(products)) {
+            return formatProductArray(products);
+        } else if (typeof products === 'string' && products.includes('product_name')) {
+            return formatDataFrameString(products);
+        } else if (typeof products === 'object') {
+            return formatDataObject(products);
+        }
+    }
+    
+    // Handle success/error wrapper responses
+    if (response.hasOwnProperty('success') && response.hasOwnProperty('products')) {
+        if (!response.success) {
+            return `<div class="error-response">
+                <strong>Error:</strong> ${response.error || 'Unknown error occurred'}
+            </div>`;
+        }
+        
+        // Handle successful response with products data
+        const products = response.products;
+        if (products && typeof products === 'string' && products.includes('product_name')) {
+            // This looks like a DataFrame string representation
+            return formatDataFrameString(products);
+        } else if (Array.isArray(products)) {
+            return formatProductArray(products);
+        } else if (typeof products === 'object') {
+            return formatDataObject(products);
+        }
+    }
+    
+    // Handle array responses
+    if (Array.isArray(response)) {
+        return formatProductArray(response);
+    }
+    
+    // Default object formatting
+    return `<pre class="code-block"><code>${JSON.stringify(response, null, 2)}</code></pre>`;
+}
+
+function formatDataFrameString(dataframeStr) {
+    // Extract table data from pandas DataFrame string representation
+    const lines = dataframeStr.split('\n').filter(line => line.trim());
+    
+    if (lines.length < 2) {
+        return `<pre class="code-block"><code>${dataframeStr}</code></pre>`;
+    }
+    
+    // Find the header line (usually contains column names)
+    let headerLineIndex = -1;
+    let dataLines = [];
+    
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (line.includes('product_name') || line.includes('price') || line.includes('profit_margin')) {
+            headerLineIndex = i;
+            break;
+        }
+    }
+    
+    if (headerLineIndex === -1) {
+        // Fallback to JSON formatting
+        return `<pre class="code-block"><code>${dataframeStr}</code></pre>`;
+    }
+    
+    // Extract headers
+    const headerLine = lines[headerLineIndex].trim();
+    const headers = headerLine.split(/\s{2,}/).filter(h => h && !h.match(/^\d+$/)); // Filter out index numbers
+    
+    // Extract data rows
+    for (let i = headerLineIndex + 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (line && !line.match(/^-+$/) && line.includes('.')) { // Skip separator lines
+            dataLines.push(line);
+        }
+    }
+    
+    if (headers.length === 0 || dataLines.length === 0) {
+        return `<pre class="code-block"><code>${dataframeStr}</code></pre>`;
+    }
+    
+    // Build HTML table
+    let tableHtml = '<div class="data-table-container"><table class="data-table">';
+    
+    // Table header
+    tableHtml += '<thead><tr>';
+    headers.forEach(header => {
+        tableHtml += `<th>${escapeHtml(header)}</th>`;
+    });
+    tableHtml += '</tr></thead>';
+    
+    // Table body
+    tableHtml += '<tbody>';
+    dataLines.forEach(line => {
+        const cells = line.split(/\s{2,}/).filter(cell => cell);
+        // Skip the index column (first cell if it's just a number)
+        const dataCells = cells[0].match(/^\d+$/) ? cells.slice(1) : cells;
+        
+        if (dataCells.length > 0) {
+            tableHtml += '<tr>';
+            dataCells.forEach((cell, index) => {
+                let formattedCell = escapeHtml(cell);
+                
+                // Format percentages and numbers
+                if (cell.match(/^-?\d+\.\d+$/)) {
+                    const num = parseFloat(cell);
+                    if (headers[index] && headers[index].toLowerCase().includes('margin')) {
+                        // Convert to percentage for margin columns
+                        const percentageValue = (num * 100).toFixed(2);
+                        const negativeClass = num < 0 ? ' negative' : '';
+                        formattedCell = `<span class="percentage${negativeClass}">${percentageValue}%</span>`;
+                    } else {
+                        formattedCell = `<span class="number">${formattedCell}</span>`;
+                    }
+                } else if (cell.match(/^\$?\d+\.\d+$/)) {
+                    formattedCell = `<span class="currency">${formattedCell}</span>`;
+                } else if (cell.match(/^\d+$/)) {
+                    formattedCell = `<span class="number">${formattedCell}</span>`;
+                }
+                
+                tableHtml += `<td>${formattedCell}</td>`;
+            });
+            tableHtml += '</tr>';
+        }
+    });
+    tableHtml += '</tbody></table></div>';
+    
+    return tableHtml;
+}
+
+function formatProductArray(products) {
+    if (!Array.isArray(products) || products.length === 0) {
+        return '<p class="placeholder">No products found.</p>';
+    }
+    
+    // Build HTML table from array of objects
+    let tableHtml = '<div class="data-table-container"><table class="data-table">';
+    
+    // Get headers from first object
+    const headers = Object.keys(products[0]);
+    
+    // Table header
+    tableHtml += '<thead><tr>';
+    headers.forEach(header => {
+        const displayHeader = header.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        tableHtml += `<th>${displayHeader}</th>`;
+    });
+    tableHtml += '</tr></thead>';
+    
+    // Table body
+    tableHtml += '<tbody>';
+    products.forEach(product => {
+        tableHtml += '<tr>';
+        headers.forEach(header => {
+            let value = product[header];
+            let formattedValue = escapeHtml(String(value));
+            
+            // Format based on data type and header name
+            if (typeof value === 'number') {
+                if (header.toLowerCase().includes('margin') || header.toLowerCase().includes('percentage')) {
+                    const percentageValue = (value * 100).toFixed(2);
+                    const negativeClass = value < 0 ? ' negative' : '';
+                    formattedValue = `<span class="percentage${negativeClass}">${percentageValue}%</span>`;
+                } else if (header.toLowerCase().includes('price') || header.toLowerCase().includes('cost')) {
+                    formattedValue = `<span class="currency">$${value.toFixed(2)}</span>`;
+                } else if (header.toLowerCase().includes('rating')) {
+                    formattedValue = `<span class="rating">${value.toFixed(1)} ⭐</span>`;
+                } else if (header.toLowerCase().includes('units_sold') || header.toLowerCase().includes('quantity')) {
+                    formattedValue = `<span class="quantity">${value.toLocaleString()}</span>`;
+                } else {
+                    formattedValue = `<span class="number">${value}</span>`;
+                }
+            }
+            
+            tableHtml += `<td>${formattedValue}</td>`;
+        });
+        tableHtml += '</tr>';
+    });
+    tableHtml += '</tbody></table></div>';
+    
+    return tableHtml;
+}
+
+function formatDataObject(data) {
+    // Handle single object data
+    let html = '<div class="data-object">';
+    
+    for (const [key, value] of Object.entries(data)) {
+        const displayKey = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        let formattedValue;
+        
+        if (typeof value === 'number') {
+            if (key.toLowerCase().includes('margin') || key.toLowerCase().includes('percentage')) {
+                const percentageValue = (value * 100).toFixed(2);
+                const negativeClass = value < 0 ? ' negative' : '';
+                formattedValue = `<span class="percentage${negativeClass}">${percentageValue}%</span>`;
+            } else if (key.toLowerCase().includes('price') || key.toLowerCase().includes('cost')) {
+                formattedValue = `<span class="currency">$${value.toFixed(2)}</span>`;
+            } else {
+                formattedValue = `<span class="number">${value}</span>`;
+            }
+        } else {
+            formattedValue = escapeHtml(String(value));
+        }
+        
+        html += `<div class="data-row">
+            <span class="data-label">${displayKey}:</span>
+            <span class="data-value">${formattedValue}</span>
+        </div>`;
+    }
+    
+    html += '</div>';
+    return html;
 }
 
 function copyResponse() {

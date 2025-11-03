@@ -658,7 +658,7 @@ current_score = results['summary']['average_score']
 improvement = (current_score - baseline_score) / baseline_score
 
 if improvement > 0.10:
-    print("✓ Significant improvement!")
+    print(" Significant improvement!")
 elif improvement < -0.05:
     print("⚠ Performance regression detected")
 ```

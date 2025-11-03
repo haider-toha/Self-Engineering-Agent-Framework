@@ -359,7 +359,7 @@ class EvaluationVisualizer:
         
         for test in results['detailed_results']:
             status_class = 'pass' if test['passed'] else 'fail'
-            status_text = '✓ PASSED' if test['passed'] else '✗ FAILED'
+            status_text = ' PASSED' if test['passed'] else '✗ FAILED'
             
             html += f"""
             <div class="test-item">

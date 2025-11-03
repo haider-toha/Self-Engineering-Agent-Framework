@@ -60,7 +60,7 @@ def promote_composites(max_promotions: int = 5):
         elif event == "processing_candidate":
             print(f"  Processing {data['index']}/{data['total']}: {data['pattern']}")
         elif event == "composite_synthesis_complete":
-            print(f"  ✓ Created composite: {data['name']}")
+            print(f"   Created composite: {data['name']}")
     
     results = synthesizer.run_batch_synthesis(
         max_candidates=max_promotions,
@@ -102,7 +102,7 @@ def process_reflections(max_fixes: int = 3):
         result = engine.apply_fix(reflection['id'])
         
         if result['success']:
-            print(f"    ✓ Fix applied successfully")
+            print(f"     Fix applied successfully")
             fixes_applied += 1
             fixes_successful += 1
         else:

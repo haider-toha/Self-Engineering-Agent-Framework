@@ -96,7 +96,7 @@ def main():
     try:
         orchestrator = AgentOrchestrator()
         tool_count = orchestrator.get_tool_count()
-        print(f"✓ Orchestrator initialized with {tool_count} existing tools")
+        print(f" Orchestrator initialized with {tool_count} existing tools")
     except Exception as e:
         print(f"✗ Failed to initialize orchestrator: {str(e)}")
         print("\nPlease ensure:")
@@ -140,7 +140,7 @@ def main():
                 visualizer.plot_test_distribution(latest_file, f"{viz_dir}/test_distribution.png")
                 visualizer.plot_performance_metrics(latest_file, f"{viz_dir}/performance.png")
                 
-                print(f"✓ Visualizations saved to {viz_dir}")
+                print(f" Visualizations saved to {viz_dir}")
         except Exception as e:
             print(f"✗ Failed to generate visualizations: {str(e)}")
     

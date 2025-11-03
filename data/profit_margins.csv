@@ -1,0 +1,18 @@
+product_name,price,cost,category,units_sold,rating,profit_margin
+Smartphone Pro X,999.99,680.0,Electronics,134,4.7,0.3199931999319993
+Noise Cancelling Earbuds,179.99,95.0,Electronics,298,4.5,0.4721928996055337
+Ultra HD Projector,1249.99,920.0,Electronics,52,4.6,0.2639941119528956
+Wireless Mechanical Keyboard,149.99,70.0,Electronics,184,4.4,0.5333022201480099
+Portable SSD 1TB,129.99,78.0,Electronics,256,4.8,0.3999538426032772
+Smartwatch Fitness Edition,249.99,135.0,Electronics,213,4.5,0.45997839913596544
+Laptop Sleeve Leather,49.99,18.0,Accessories,342,4.2,0.6399279855971194
+MagSafe Charging Stand,59.99,28.0,Accessories,287,4.3,0.5332555425904317
+Travel Backpack Tech,119.99,65.0,Accessories,193,4.6,0.4582881906825569
+Wireless Presenter Remote,39.99,20.0,Accessories,176,4.1,0.49987496874218557
+Executive Office Chair,359.99,240.0,Furniture,65,4.5,0.3333148143003973
+Adjustable Standing Desk,749.99,490.0,Furniture,39,4.7,0.34665795543940586
+Monitor Light Bar,99.99,42.0,Furniture,112,4.4,0.57995799579958
+Wooden Drawer Organizer,44.99,18.0,Furniture,148,4.2,0.5999110913536342
+Smart Ambient Lamp,119.99,55.0,Furniture,97,4.3,0.5416284690390866
+Overpriced Cable,25.0,45.0,Accessories,8,2.2,-0.8
+Discounted Display Model,150.0,220.0,Electronics,3,2.0,-0.4666666666666667
