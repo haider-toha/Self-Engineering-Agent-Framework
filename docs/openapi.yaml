@@ -1,0 +1,770 @@
+openapi: 3.0.3
+info:
+  title: Self-Engineering Agent Framework API
+  description: |
+    REST API for the Self-Engineering Agent Framework - an autonomous AI agent system that dynamically creates its own tools on demand.
+    
+    This API provides endpoints for:
+    - Managing conversational sessions with memory
+    - Retrieving and searching available tools
+    - Accessing workflow analytics and patterns
+    - Viewing tool relationships and execution history
+    
+    Currently, the API does not require authentication. In production deployments, you should configure authentication using:
+    - API keys via `OPENAI_API_KEY` environment variable
+    - Supabase credentials via `SUPABASE_URL` and `SUPABASE_KEY`
+    
+    For real-time bidirectional communication, use the Socket.IO WebSocket API documented separately in `websocket-events.md`.
+    
+  version: 1.0.0
+  contact:
+    name: Self-Engineering Agent Framework
+    url: https://github.com/haider-toha/Self-Engineering-Agent-Framework
+  license:
+    name: MIT
+    url: https://github.com/haider-toha/Self-Engineering-Agent-Framework/blob/main/LICENSE
+
+servers:
+  - url: http://localhost:5001
+    description: Local development server
+  - url: http://localhost:5001/api
+    description: API base path
+
+tags:
+  - name: Session Management
+    description: Endpoints for managing conversational sessions with memory
+  - name: Tools
+    description: Endpoints for retrieving and managing synthesized tools
+  - name: Analytics
+    description: Endpoints for workflow analytics, patterns, and relationships
+
+paths:
+  /api/session:
+    post:
+      tags:
+        - Session Management
+      summary: Create a new session
+      description: |
+        Creates a new conversational session with memory. Sessions maintain context across multiple requests,
+        allowing the agent to remember previous interactions and build upon them.
+        
+        Sessions are stored in the Supabase `agent_sessions` table and messages are tracked in `session_messages`.
+      operationId: createSession
+      responses:
+        '200':
+          description: Session created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  session_id:
+                    type: string
+                    format: uuid
+                    example: "550e8400-e29b-41d4-a716-446655440000"
+                    description: Unique identifier for the session
+              examples:
+                success:
+                  value:
+                    success: true
+                    session_id: "550e8400-e29b-41d4-a716-446655440000"
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                orchestrator_error:
+                  value:
+                    success: false
+                    error: "Orchestrator not initialized"
+
+  /api/session/{session_id}/messages:
+    get:
+      tags:
+        - Session Management
+      summary: Get session messages
+      description: |
+        Retrieves recent messages for a specific session. Messages include both user prompts and agent responses,
+        maintaining the conversational history.
+      operationId: getSessionMessages
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          description: Unique session identifier
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          required: false
+          description: Maximum number of messages to return
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: Messages retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  messages:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Message'
+                  count:
+                    type: integer
+                    example: 5
+              examples:
+                with_messages:
+                  value:
+                    success: true
+                    count: 2
+                    messages:
+                      - role: "user"
+                        content: "Calculate profit margins from data/ecommerce_products.csv"
+                        message_index: 0
+                        created_at: "2025-11-04T10:30:00Z"
+                      - role: "assistant"
+                        content: "I've calculated the profit margins. The average margin is 23.5%."
+                        message_index: 1
+                        created_at: "2025-11-04T10:30:15Z"
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/tools:
+    get:
+      tags:
+        - Tools
+      summary: Get all available tools
+      description: |
+        Retrieves a list of all synthesized tools available in the agent's registry.
+        Each tool includes metadata such as name, docstring, file paths, and creation timestamp.
+      operationId: getTools
+      responses:
+        '200':
+          description: Tools retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  tools:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ToolSummary'
+                  count:
+                    type: integer
+                    example: 15
+              examples:
+                tools_list:
+                  value:
+                    success: true
+                    count: 2
+                    tools:
+                      - name: "calculate_profit_margins"
+                        docstring: "Calculate profit margins from a CSV file containing product data"
+                        file_path: "tools/calculate_profit_margins.py"
+                        test_path: "tools/test_calculate_profit_margins.py"
+                        timestamp: "2025-11-04T10:30:00Z"
+                      - name: "analyze_sales_trends"
+                        docstring: "Analyze sales trends over time from transaction data"
+                        file_path: "tools/analyze_sales_trends.py"
+                        test_path: "tools/test_analyze_sales_trends.py"
+                        timestamp: "2025-11-04T10:35:00Z"
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/tools/{tool_name}:
+    get:
+      tags:
+        - Tools
+      summary: Get tool details
+      description: |
+        Retrieves detailed information about a specific tool, including:
+        - Full source code
+        - Test suite code
+        - Docstring and documentation
+        - File paths
+        - Creation timestamp
+      operationId: getToolDetails
+      parameters:
+        - name: tool_name
+          in: path
+          required: true
+          description: Name of the tool to retrieve
+          schema:
+            type: string
+            example: "calculate_profit_margins"
+      responses:
+        '200':
+          description: Tool details retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  tool:
+                    $ref: '#/components/schemas/ToolDetails'
+              examples:
+                tool_details:
+                  value:
+                    success: true
+                    tool:
+                      name: "calculate_profit_margins"
+                      code: "import pandas as pd\n\ndef calculate_profit_margins(csv_path):\n    df = pd.read_csv(csv_path)\n    df['margin'] = (df['price'] - df['cost']) / df['price'] * 100\n    return df['margin'].mean()"
+                      test_code: "import pytest\nfrom calculate_profit_margins import calculate_profit_margins\n\ndef test_calculate_profit_margins():\n    result = calculate_profit_margins('test_data.csv')\n    assert result > 0"
+                      docstring: "Calculate profit margins from a CSV file containing product data"
+                      timestamp: "2025-11-04T10:30:00Z"
+                      file_path: "tools/calculate_profit_margins.py"
+                      test_path: "tools/test_calculate_profit_margins.py"
+        '404':
+          description: Tool not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                not_found:
+                  value:
+                    success: false
+                    error: "Tool not found"
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/analytics/relationships:
+    get:
+      tags:
+        - Analytics
+      summary: Get tool relationships
+      description: |
+        Retrieves tool relationship analytics showing which tools are frequently used together.
+        Relationships are mined from execution history and indicate tool co-occurrence patterns.
+      operationId: getToolRelationships
+      parameters:
+        - name: tool_name
+          in: query
+          required: false
+          description: Filter relationships for a specific tool
+          schema:
+            type: string
+            example: "calculate_profit_margins"
+        - name: min_confidence
+          in: query
+          required: false
+          description: Minimum confidence score for relationships (0.0-1.0)
+          schema:
+            type: number
+            format: float
+            default: 0.5
+            minimum: 0.0
+            maximum: 1.0
+      responses:
+        '200':
+          description: Relationships retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  relationships:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ToolRelationship'
+                  count:
+                    type: integer
+                    example: 8
+              examples:
+                relationships:
+                  value:
+                    success: true
+                    count: 2
+                    relationships:
+                      - tool_a: "calculate_profit_margins"
+                        tool_b: "analyze_sales_trends"
+                        confidence_score: 0.85
+                        frequency: 12
+                      - tool_a: "load_csv_data"
+                        tool_b: "calculate_profit_margins"
+                        confidence_score: 0.92
+                        frequency: 18
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/analytics/patterns:
+    get:
+      tags:
+        - Analytics
+      summary: Get workflow patterns
+      description: |
+        Retrieves detected workflow patterns - sequences of tools that are frequently executed together.
+        Patterns are automatically learned from execution history and can be promoted to composite tools.
+      operationId: getWorkflowPatterns
+      parameters:
+        - name: min_frequency
+          in: query
+          required: false
+          description: Minimum number of times a pattern must occur
+          schema:
+            type: integer
+            default: 2
+            minimum: 1
+        - name: limit
+          in: query
+          required: false
+          description: Maximum number of patterns to return
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: Patterns retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  patterns:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/WorkflowPattern'
+                  count:
+                    type: integer
+                    example: 5
+              examples:
+                patterns:
+                  value:
+                    success: true
+                    count: 1
+                    patterns:
+                      - pattern_name: "data_analysis_workflow"
+                        tool_sequence:
+                          - "load_csv_data"
+                          - "calculate_profit_margins"
+                          - "generate_report"
+                        frequency: 8
+                        avg_success_rate: 0.95
+                        confidence_score: 0.88
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/analytics/sessions/{session_id}:
+    get:
+      tags:
+        - Analytics
+      summary: Get session execution history
+      description: |
+        Retrieves the execution history for a specific session, showing all tools executed,
+        their inputs, outputs, success status, and execution times.
+      operationId: getSessionHistory
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          description: Unique session identifier
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          required: false
+          description: Maximum number of executions to return
+          schema:
+            type: integer
+            default: 100
+            minimum: 1
+            maximum: 1000
+      responses:
+        '200':
+          description: Session history retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  session_id:
+                    type: string
+                    format: uuid
+                  executions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ToolExecution'
+                  count:
+                    type: integer
+                    example: 12
+              examples:
+                history:
+                  value:
+                    success: true
+                    session_id: "550e8400-e29b-41d4-a716-446655440000"
+                    count: 2
+                    executions:
+                      - tool_name: "calculate_profit_margins"
+                        execution_order: 1
+                        inputs:
+                          csv_path: "data/ecommerce_products.csv"
+                        outputs:
+                          average_margin: 23.5
+                        success: true
+                        execution_time_ms: 145
+                        timestamp: "2025-11-04T10:30:15Z"
+                      - tool_name: "generate_report"
+                        execution_order: 2
+                        inputs:
+                          data: {"average_margin": 23.5}
+                        outputs:
+                          report_path: "reports/profit_analysis.pdf"
+                        success: true
+                        execution_time_ms: 320
+                        timestamp: "2025-11-04T10:30:18Z"
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/analytics/stats:
+    get:
+      tags:
+        - Analytics
+      summary: Get workflow statistics
+      description: |
+        Retrieves overall workflow statistics including:
+        - Total number of patterns detected
+        - Total tool relationships
+        - Most frequent workflow pattern
+        - Most connected tools
+      operationId: getWorkflowStats
+      responses:
+        '200':
+          description: Statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  stats:
+                    $ref: '#/components/schemas/WorkflowStats'
+              examples:
+                stats:
+                  value:
+                    success: true
+                    stats:
+                      total_patterns: 15
+                      total_relationships: 42
+                      most_frequent_pattern:
+                        name: "data_analysis_workflow"
+                        frequency: 8
+                        tools:
+                          - "load_csv_data"
+                          - "calculate_profit_margins"
+                          - "generate_report"
+                      most_connected_tools:
+                        - tool: "calculate_profit_margins"
+                          connections: 12
+                        - tool: "load_csv_data"
+                          connections: 10
+                        - tool: "analyze_sales_trends"
+                          connections: 8
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  schemas:
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          example: "An error occurred"
+      required:
+        - success
+        - error
+
+    Message:
+      type: object
+      properties:
+        role:
+          type: string
+          enum: [user, assistant]
+          description: Role of the message sender
+        content:
+          type: string
+          description: Message content
+        message_index:
+          type: integer
+          description: Sequential index of the message in the session
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp when the message was created
+      required:
+        - role
+        - content
+
+    ToolSummary:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Unique name of the tool
+          example: "calculate_profit_margins"
+        docstring:
+          type: string
+          description: Tool documentation and description
+          example: "Calculate profit margins from a CSV file containing product data"
+        file_path:
+          type: string
+          description: Path to the tool's source code file
+          example: "tools/calculate_profit_margins.py"
+        test_path:
+          type: string
+          description: Path to the tool's test file
+          example: "tools/test_calculate_profit_margins.py"
+        timestamp:
+          type: string
+          format: date-time
+          description: When the tool was created
+      required:
+        - name
+        - docstring
+        - file_path
+        - test_path
+
+    ToolDetails:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Unique name of the tool
+        code:
+          type: string
+          description: Full source code of the tool
+        test_code:
+          type: string
+          description: Full test suite code
+        docstring:
+          type: string
+          description: Tool documentation and description
+        timestamp:
+          type: string
+          format: date-time
+          description: When the tool was created
+        file_path:
+          type: string
+          description: Path to the tool's source code file
+        test_path:
+          type: string
+          description: Path to the tool's test file
+      required:
+        - name
+        - code
+        - test_code
+        - docstring
+        - file_path
+        - test_path
+
+    ToolRelationship:
+      type: object
+      properties:
+        tool_a:
+          type: string
+          description: First tool in the relationship
+          example: "calculate_profit_margins"
+        tool_b:
+          type: string
+          description: Second tool in the relationship
+          example: "analyze_sales_trends"
+        confidence_score:
+          type: number
+          format: float
+          description: Confidence score for the relationship (0.0-1.0)
+          minimum: 0.0
+          maximum: 1.0
+          example: 0.85
+        frequency:
+          type: integer
+          description: Number of times these tools were used together
+          example: 12
+      required:
+        - tool_a
+        - tool_b
+        - confidence_score
+        - frequency
+
+    WorkflowPattern:
+      type: object
+      properties:
+        pattern_name:
+          type: string
+          description: Name of the workflow pattern
+          example: "data_analysis_workflow"
+        tool_sequence:
+          type: array
+          items:
+            type: string
+          description: Ordered sequence of tools in the pattern
+          example: ["load_csv_data", "calculate_profit_margins", "generate_report"]
+        frequency:
+          type: integer
+          description: Number of times this pattern has been executed
+          example: 8
+        avg_success_rate:
+          type: number
+          format: float
+          description: Average success rate of the pattern (0.0-1.0)
+          minimum: 0.0
+          maximum: 1.0
+          example: 0.95
+        confidence_score:
+          type: number
+          format: float
+          description: Confidence score for the pattern (0.0-1.0)
+          minimum: 0.0
+          maximum: 1.0
+          example: 0.88
+      required:
+        - pattern_name
+        - tool_sequence
+        - frequency
+        - avg_success_rate
+        - confidence_score
+
+    ToolExecution:
+      type: object
+      properties:
+        tool_name:
+          type: string
+          description: Name of the executed tool
+          example: "calculate_profit_margins"
+        execution_order:
+          type: integer
+          description: Order of execution within the session
+          example: 1
+        inputs:
+          type: object
+          description: Input parameters passed to the tool
+          additionalProperties: true
+        outputs:
+          type: object
+          description: Output returned by the tool
+          additionalProperties: true
+        success:
+          type: boolean
+          description: Whether the execution was successful
+          example: true
+        execution_time_ms:
+          type: integer
+          description: Execution time in milliseconds
+          example: 145
+        timestamp:
+          type: string
+          format: date-time
+          description: When the execution occurred
+      required:
+        - tool_name
+        - execution_order
+        - success
+        - timestamp
+
+    WorkflowStats:
+      type: object
+      properties:
+        total_patterns:
+          type: integer
+          description: Total number of workflow patterns detected
+          example: 15
+        total_relationships:
+          type: integer
+          description: Total number of tool relationships
+          example: 42
+        most_frequent_pattern:
+          type: object
+          nullable: true
+          properties:
+            name:
+              type: string
+              example: "data_analysis_workflow"
+            frequency:
+              type: integer
+              example: 8
+            tools:
+              type: array
+              items:
+                type: string
+              example: ["load_csv_data", "calculate_profit_margins", "generate_report"]
+        most_connected_tools:
+          type: array
+          items:
+            type: object
+            properties:
+              tool:
+                type: string
+                example: "calculate_profit_margins"
+              connections:
+                type: integer
+                example: 12
+      required:
+        - total_patterns
+        - total_relationships
+        - most_connected_tools

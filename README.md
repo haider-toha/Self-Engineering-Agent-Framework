@@ -54,17 +54,102 @@ This README is the story of building that system.
 
 ## Table of Contents
 
-1. [The Framework Wars: Why Existing Solutions Fall Short](#the-framework-wars-why-existing-solutions-fall-short)
-2. [The Self-Engineering Vision: A New Paradigm](#the-self-engineering-vision-a-new-paradigm)
-3. [Technical Deep Dive: How It Actually Works](#technical-deep-dive-how-it-actually-works)
-4. [The Synthesis Engine: AI Writing AI Tools](#the-synthesis-engine-ai-writing-ai-tools)
-5. [Security & Sandboxing: Running Untrusted Code Safely](#security--sandboxing-running-untrusted-code-safely)
-6. [Intelligence Layer: Semantic Tool Discovery](#intelligence-layer-semantic-tool-discovery)
-7. [Memory & Context: Building Conversational Workflows](#memory--context-building-conversational-workflows)
-8. [Performance Analysis: Real-World Benchmarks](#performance-analysis-real-world-benchmarks)
-9. [Live Demo: Building an Agent in Real-Time](#live-demo-building-an-agent-in-real-time)
-10. [Lessons Learned: What I'd Do Differently](#lessons-learned-what-id-do-differently)
-11. [The Future: Where This Goes Next](#the-future-where-this-goes-next)
+1. [API Documentation](#api-documentation)
+2. [The Framework Wars: Why Existing Solutions Fall Short](#the-framework-wars-why-existing-solutions-fall-short)
+3. [The Self-Engineering Vision: A New Paradigm](#the-self-engineering-vision-a-new-paradigm)
+4. [Technical Deep Dive: How It Actually Works](#technical-deep-dive-how-it-actually-works)
+5. [The Synthesis Engine: AI Writing AI Tools](#the-synthesis-engine-ai-writing-ai-tools)
+6. [Security & Sandboxing: Running Untrusted Code Safely](#security--sandboxing-running-untrusted-code-safely)
+7. [Intelligence Layer: Semantic Tool Discovery](#intelligence-layer-semantic-tool-discovery)
+8. [Memory & Context: Building Conversational Workflows](#memory--context-building-conversational-workflows)
+9. [Performance Analysis: Real-World Benchmarks](#performance-analysis-real-world-benchmarks)
+10. [Live Demo: Building an Agent in Real-Time](#live-demo-building-an-agent-in-real-time)
+11. [Lessons Learned: What I'd Do Differently](#lessons-learned-what-id-do-differently)
+12. [The Future: Where This Goes Next](#the-future-where-this-goes-next)
+
+---
+
+## API Documentation
+
+Comprehensive API documentation is available for developers building integrations or extending the framework.
+
+### Quick Access
+
+- **[Interactive API Documentation](http://localhost:5001/api/docs)** - Swagger UI (requires server running)
+- **[Complete Documentation Portal](docs/)** - Full documentation suite
+
+### Documentation Suite
+
+| Document | Description |
+|----------|-------------|
+| **[API Overview](docs/)** | Documentation portal with quick start guides |
+| **[OpenAPI Specification](docs/openapi.yaml)** | REST API reference in OpenAPI 3.0 format |
+| **[WebSocket Events](docs/websocket-events.md)** | Real-time event reference (30+ event types) |
+| **[Python API Reference](docs/python-api-reference.md)** | Core module documentation (8 modules) |
+| **[Integration Guide](docs/integration-guide.md)** | Complete integration examples and workflows |
+| **[SDK Examples](docs/sdk-examples.md)** | Client libraries (Python, JavaScript, cURL) |
+| **[Database Schema](docs/database-schema.md)** | Supabase table structures and relationships |
+| **[Authentication & Security](docs/authentication-and-security.md)** | Security best practices and authentication |
+
+### REST API Endpoints
+
+```
+POST   /api/session                          # Create new session
+GET    /api/session/<id>/messages            # Get conversation history
+GET    /api/tools                            # List all tools
+GET    /api/tools/<name>                     # Get tool details
+GET    /api/analytics/patterns               # Get workflow patterns
+GET    /api/analytics/relationships          # Get tool relationships
+GET    /api/analytics/session-history        # Get session history
+GET    /api/analytics/stats                  # Get system statistics
+```
+
+### WebSocket Connection
+
+```javascript
+// Connect to WebSocket
+const socket = io('http://localhost:5001');
+
+// Listen for events
+socket.on('agent_event', (data) => {
+  console.log(`[${data.type}] ${data.message}`);
+});
+
+// Submit query
+socket.emit('query', {
+  session_id: 'your-session-id',
+  prompt: 'Calculate profit margins from data.csv'
+});
+```
+
+### Quick Start Example
+
+```python
+import requests
+import socketio
+
+# Create session
+response = requests.post('http://localhost:5001/api/session')
+session_id = response.json()['session_id']
+
+# Connect to WebSocket
+sio = socketio.Client()
+sio.connect('http://localhost:5001')
+
+@sio.on('query_complete')
+def on_complete(data):
+    print(f"Result: {data['result']}")
+
+# Submit query
+sio.emit('query', {
+    'session_id': session_id,
+    'prompt': 'Your query here'
+})
+
+sio.wait()
+```
+
+For complete examples, integration patterns, and detailed documentation, see the **[docs/](docs/)** directory.
 
 ---
 
