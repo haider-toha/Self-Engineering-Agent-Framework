@@ -1,0 +1,601 @@
+openapi: 3.0.3
+info:
+  title: Self-Engineering Agent Framework API
+  description: |
+    REST API and WebSocket interface for the Self-Engineering Agent Framework.
+    
+    This framework enables autonomous AI agents that can dynamically create their own tools on demand
+    using a Test-Driven Development (TDD) approach. The API provides endpoints for session management,
+    tool discovery, execution, and real-time event streaming via WebSocket.
+    
+    - **Dynamic Tool Synthesis**: Automatically generate Python functions from natural language requests
+    - **Semantic Tool Discovery**: Vector similarity search for finding relevant tools
+    - **Multi-tool Workflows**: Chain multiple tools together for complex tasks
+    - **Conversational Memory**: Maintain context across interactions
+    - **Real-time Updates**: WebSocket events for progress tracking
+    
+    Currently, the API does not require authentication. Future versions will implement API key-based authentication.
+    
+    No rate limiting is currently enforced. Future versions will implement rate limiting policies.
+    
+  version: 1.0.0
+  contact:
+    name: Self-Engineering Agent Framework
+    url: https://github.com/haider-toha/Self-Engineering-Agent-Framework
+  license:
+    name: MIT
+    url: https://github.com/haider-toha/Self-Engineering-Agent-Framework/blob/main/LICENSE
+
+servers:
+  - url: http://localhost:5001
+    description: Local development server
+  - url: http://localhost:5001/api
+    description: API base path
+
+tags:
+  - name: Session Management
+    description: Operations for managing conversational sessions
+  - name: Tools
+    description: Operations for discovering and managing synthesized tools
+  - name: Analytics
+    description: Operations for workflow analytics and pattern discovery
+  - name: WebSocket
+    description: Real-time bidirectional communication via Socket.IO
+
+paths:
+  /api/session:
+    post:
+      tags:
+        - Session Management
+      summary: Create a new session
+      description: |
+        Creates a new conversational session for maintaining context across multiple requests.
+        Sessions enable the agent to remember previous interactions and provide contextually aware responses.
+      operationId: createSession
+      responses:
+        '200':
+          description: Session created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  session_id:
+                    type: string
+                    format: uuid
+                    example: "550e8400-e29b-41d4-a716-446655440000"
+                    description: Unique identifier for the session
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/session/{session_id}/messages:
+    get:
+      tags:
+        - Session Management
+      summary: Get session messages
+      description: |
+        Retrieves recent messages from a conversational session.
+        Messages include both user prompts and agent responses.
+      operationId: getSessionMessages
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          description: Unique session identifier
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          required: false
+          description: Maximum number of messages to return
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: Messages retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  messages:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Message'
+                  count:
+                    type: integer
+                    example: 10
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/tools:
+    get:
+      tags:
+        - Tools
+      summary: List all available tools
+      description: |
+        Returns a list of all synthesized tools in the capability registry.
+        Each tool includes metadata such as name, docstring, file paths, and creation timestamp.
+      operationId: getTools
+      responses:
+        '200':
+          description: Tools retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  tools:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ToolSummary'
+                  count:
+                    type: integer
+                    example: 42
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/tools/{tool_name}:
+    get:
+      tags:
+        - Tools
+      summary: Get tool details
+      description: |
+        Retrieves detailed information about a specific tool including its implementation code,
+        test suite, docstring, and metadata.
+      operationId: getToolDetails
+      parameters:
+        - name: tool_name
+          in: path
+          required: true
+          description: Name of the tool
+          schema:
+            type: string
+            example: "calculate_profit_margins"
+      responses:
+        '200':
+          description: Tool details retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  tool:
+                    $ref: '#/components/schemas/ToolDetails'
+        '404':
+          description: Tool not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  error:
+                    type: string
+                    example: "Tool not found"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/analytics/relationships:
+    get:
+      tags:
+        - Analytics
+      summary: Get tool relationships
+      description: |
+        Returns pairwise relationships between tools based on co-occurrence patterns.
+        Useful for understanding which tools are frequently used together.
+      operationId: getToolRelationships
+      parameters:
+        - name: tool_name
+          in: query
+          required: false
+          description: Filter relationships for a specific tool
+          schema:
+            type: string
+        - name: min_confidence
+          in: query
+          required: false
+          description: Minimum confidence score threshold
+          schema:
+            type: number
+            format: float
+            default: 0.5
+            minimum: 0.0
+            maximum: 1.0
+      responses:
+        '200':
+          description: Relationships retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  relationships:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ToolRelationship'
+                  count:
+                    type: integer
+                    example: 15
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/analytics/patterns:
+    get:
+      tags:
+        - Analytics
+      summary: Get workflow patterns
+      description: |
+        Returns detected multi-tool workflow patterns based on execution history.
+        Patterns represent frequently used tool sequences that can be promoted to composite tools.
+      operationId: getWorkflowPatterns
+      parameters:
+        - name: min_frequency
+          in: query
+          required: false
+          description: Minimum occurrence frequency
+          schema:
+            type: integer
+            default: 2
+            minimum: 1
+        - name: limit
+          in: query
+          required: false
+          description: Maximum number of patterns to return
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: Patterns retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  patterns:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/WorkflowPattern'
+                  count:
+                    type: integer
+                    example: 8
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/analytics/sessions/{session_id}:
+    get:
+      tags:
+        - Analytics
+      summary: Get session execution history
+      description: |
+        Returns the execution history for a specific session including all tool executions,
+        inputs, outputs, and performance metrics.
+      operationId: getSessionHistory
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          description: Unique session identifier
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          required: false
+          description: Maximum number of executions to return
+          schema:
+            type: integer
+            default: 100
+            minimum: 1
+            maximum: 1000
+      responses:
+        '200':
+          description: History retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  session_id:
+                    type: string
+                    format: uuid
+                  executions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ToolExecution'
+                  count:
+                    type: integer
+                    example: 25
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/analytics/stats:
+    get:
+      tags:
+        - Analytics
+      summary: Get workflow statistics
+      description: |
+        Returns overall workflow statistics including pattern counts, relationship metrics,
+        and most frequently used tools.
+      operationId: getWorkflowStats
+      responses:
+        '200':
+          description: Statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  stats:
+                    $ref: '#/components/schemas/WorkflowStats'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          example: "Orchestrator not initialized"
+
+    Message:
+      type: object
+      properties:
+        role:
+          type: string
+          enum: [user, assistant]
+          example: "user"
+        content:
+          type: string
+          example: "Calculate profit margins from data/ecommerce_products.csv"
+        message_index:
+          type: integer
+          example: 0
+        created_at:
+          type: string
+          format: date-time
+          example: "2025-11-04T10:30:00Z"
+
+    ToolSummary:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "calculate_profit_margins"
+        docstring:
+          type: string
+          example: "Calculate profit margins for products in a CSV file"
+        file_path:
+          type: string
+          example: "tools/calculate_profit_margins.py"
+        test_path:
+          type: string
+          example: "tools/test_calculate_profit_margins.py"
+        timestamp:
+          type: string
+          format: date-time
+          example: "2025-11-04T10:15:00Z"
+
+    ToolDetails:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "calculate_profit_margins"
+        code:
+          type: string
+          example: |
+            def calculate_profit_margins(csv_path: str) -> dict:
+                """Calculate profit margins for products"""
+                import pandas as pd
+                df = pd.read_csv(csv_path)
+                df['profit_margin'] = (df['price'] - df['cost']) / df['price']
+                return df.to_dict('records')
+        test_code:
+          type: string
+          example: |
+            def test_calculate_profit_margins():
+                result = calculate_profit_margins('data/test.csv')
+                assert isinstance(result, dict)
+        docstring:
+          type: string
+          example: "Calculate profit margins for products in a CSV file"
+        timestamp:
+          type: string
+          format: date-time
+          example: "2025-11-04T10:15:00Z"
+        file_path:
+          type: string
+          example: "tools/calculate_profit_margins.py"
+        test_path:
+          type: string
+          example: "tools/test_calculate_profit_margins.py"
+
+    ToolRelationship:
+      type: object
+      properties:
+        tool_a:
+          type: string
+          example: "load_csv_data"
+        tool_b:
+          type: string
+          example: "calculate_profit_margins"
+        confidence_score:
+          type: number
+          format: float
+          example: 0.85
+          description: Confidence score between 0.0 and 1.0
+        frequency:
+          type: integer
+          example: 12
+          description: Number of times these tools were used together
+
+    WorkflowPattern:
+      type: object
+      properties:
+        pattern_name:
+          type: string
+          example: "data_analysis_workflow"
+        tool_sequence:
+          type: array
+          items:
+            type: string
+          example: ["load_csv_data", "calculate_statistics", "generate_report"]
+        frequency:
+          type: integer
+          example: 8
+          description: Number of times this pattern was observed
+        avg_success_rate:
+          type: number
+          format: float
+          example: 0.95
+          description: Average success rate of this pattern
+        confidence_score:
+          type: number
+          format: float
+          example: 0.88
+          description: Confidence score for pattern reliability
+
+    ToolExecution:
+      type: object
+      properties:
+        tool_name:
+          type: string
+          example: "calculate_profit_margins"
+        execution_order:
+          type: integer
+          example: 1
+        inputs:
+          type: object
+          example: {"csv_path": "data/products.csv"}
+        outputs:
+          type: object
+          example: {"products": [{"name": "Widget", "margin": 0.35}]}
+        success:
+          type: boolean
+          example: true
+        execution_time_ms:
+          type: integer
+          example: 245
+        timestamp:
+          type: string
+          format: date-time
+          example: "2025-11-04T10:30:15Z"
+
+    WorkflowStats:
+      type: object
+      properties:
+        total_patterns:
+          type: integer
+          example: 15
+        total_relationships:
+          type: integer
+          example: 42
+        most_frequent_pattern:
+          type: object
+          properties:
+            name:
+              type: string
+              example: "data_analysis_workflow"
+            frequency:
+              type: integer
+              example: 12
+            tools:
+              type: array
+              items:
+                type: string
+              example: ["load_csv_data", "calculate_statistics"]
+        most_connected_tools:
+          type: array
+          items:
+            type: object
+            properties:
+              tool:
+                type: string
+                example: "load_csv_data"
+              connections:
+                type: integer
+                example: 8
+
+    WebSocketEvent:
+      type: object
+      description: Base structure for WebSocket events emitted via Socket.IO
+      properties:
+        event_type:
+          type: string
+          description: Type of event being emitted
+          example: "tool_found"
+        data:
+          type: object
+          description: Event-specific payload data
+          additionalProperties: true

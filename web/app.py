@@ -8,11 +8,13 @@ import os
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, send_from_directory
 from flask_socketio import SocketIO, emit
+from flask_swagger_ui import get_swaggerui_blueprint
 from src.orchestrator import AgentOrchestrator
 from config import Config
 import eventlet
+import os
 
 # Patch for async support
 eventlet.monkey_patch()
@@ -34,11 +36,32 @@ except Exception as e:
     # Create a minimal fallback
     orchestrator = None
 
+SWAGGER_URL = '/api/docs'
+API_URL = '/api/openapi.yaml'
+swaggerui_blueprint = get_swaggerui_blueprint(
+    SWAGGER_URL,
+    API_URL,
+    config={
+        'app_name': "Self-Engineering Agent Framework API",
+        'docExpansion': 'list',
+        'defaultModelsExpandDepth': 3,
+        'displayRequestDuration': True
+    }
+)
+app.register_blueprint(swaggerui_blueprint, url_prefix=SWAGGER_URL)
+
 
 @app.route('/')
 def index():
     """Serve the main web interface"""
     return render_template('index.html')
+
+
+@app.route('/api/openapi.yaml')
+def serve_openapi_spec():
+    """Serve the OpenAPI specification file"""
+    docs_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'docs')
+    return send_from_directory(docs_dir, 'openapi.yaml')
 
 
 @app.route('/api/tools', methods=['GET'])
