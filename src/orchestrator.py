@@ -3,10 +3,9 @@ Agent Orchestrator - Central decision-making component that coordinates all subs
 """
 
 import time
-import hashlib
-import json
 from typing import Dict, Any, Optional, Callable
 from src.capability_registry import CapabilityRegistry
+from src.utils import summarize_result
 from src.synthesis_engine import CapabilitySynthesisEngine
 from src.executor import ToolExecutor
 from src.response_synthesizer import ResponseSynthesizer
@@ -197,103 +196,12 @@ class AgentOrchestrator:
 
                 if not existing_tool:
                     # No existing tool found or it failed - create new one
-                    emit("no_tool_found", {"query": user_prompt})
-                    emit("entering_synthesis_mode", {})
-
-                    # Synthesize new capability
-                    synthesis_result = self.synthesis_engine.synthesize_capability(
+                    result = self._synthesize_and_execute(
                         user_prompt=agent_prompt,
-                        callback=callback
+                        emit=emit,
+                        callback=callback,
+                        handle_argument_errors=True  # force_synthesis treats argument errors as partial success
                     )
-
-                    if not synthesis_result['success']:
-                        error = synthesis_result.get('error', 'Unknown error')
-                        emit("synthesis_failed", {
-                            "error": error,
-                            "step": synthesis_result.get('step', 'unknown')
-                        })
-                        error_response = self.synthesizer.synthesize_error(
-                            user_prompt,
-                            f"Failed to create new capability: {error}"
-                        )
-                        result = {
-                            "success": False,
-                            "response": error_response,
-                            "error": error,
-                            "synthesis_failed": True
-                        }
-                    else:
-                        # Synthesis successful - now execute the new tool
-                        tool_name = synthesis_result['tool_name']
-                        tests_verified = synthesis_result.get('tests_verified', False)
-
-                        emit("synthesis_successful", {
-                            "tool_name": tool_name,
-                            "experimental": not tests_verified
-                        })
-
-                        if not tests_verified:
-                            emit("tool_experimental_warning", {
-                                "message": f"Note: '{tool_name}' was registered as experimental (tests failed during verification)"
-                            })
-
-                        new_tool_info = self.registry.get_tool_by_name(tool_name)
-
-                        emit("executing", {"tool_name": tool_name})
-
-                        execution_result = self.executor.execute_with_retry(
-                            tool_info=new_tool_info,
-                            user_prompt=agent_prompt
-                        )
-
-                        if not execution_result['success']:
-                            error = execution_result['error']
-
-                            # If execution failed due to missing arguments in a synthesis request,
-                            # treat it as successful creation (just don't execute)
-                            if execution_result.get("error_type") == "ArgumentError":
-                                emit("execution_skipped", {
-                                    "reason": "Tool created successfully but requires explicit arguments for execution"
-                                })
-
-                                result = {
-                                    "success": True,
-                                    "response": f"Tool '{tool_name}' created successfully! It's ready to use when you provide the required arguments.",
-                                    "tool_name": tool_name,
-                                    "synthesized": True,
-                                    "execution_skipped": True
-                                }
-                            else:
-                                # Other execution errors are real failures
-                                emit("execution_failed", {"error": error})
-                                error_response = self.synthesizer.synthesize_error(user_prompt, error)
-                                result = {
-                                    "success": False,
-                                    "response": error_response,
-                                    "error": error,
-                                    "tool_name": tool_name,
-                                    "synthesized": True
-                                }
-                        else:
-                            tool_result = execution_result['result']
-
-                            emit("execution_complete", {
-                                "tool_name": tool_name,
-                                "result": str(tool_result)
-                            })
-
-                            emit("synthesizing_response", {})
-                            final_response = str(tool_result)
-
-                            emit("complete", {"response": final_response})
-
-                            result = {
-                                "success": True,
-                                "response": final_response,
-                                "tool_name": tool_name,
-                                "tool_result": tool_result,
-                                "synthesized": True
-                            }
 
             elif strategy == 'composite_tool':
                 # Use existing composite tool
@@ -360,6 +268,123 @@ class AgentOrchestrator:
                 "error": str(e),
                 "session_id": active_session_id
             }
+    
+    def _synthesize_and_execute(
+        self,
+        user_prompt: str,
+        emit: Callable,
+        callback: Optional[Callable] = None,
+        handle_argument_errors: bool = False
+    ) -> Dict[str, Any]:
+        """
+        Helper method to synthesize a new capability and execute it.
+        
+        Args:
+            user_prompt: User's request
+            emit: Event emitter function
+            callback: Progress callback
+            handle_argument_errors: If True, treat argument errors as partial success
+            
+        Returns:
+            Result dictionary
+        """
+        emit("no_tool_found", {"query": user_prompt})
+        emit("entering_synthesis_mode", {})
+        
+        # Synthesize new capability
+        synthesis_result = self.synthesis_engine.synthesize_capability(
+            user_prompt=user_prompt,
+            callback=callback
+        )
+        
+        if not synthesis_result['success']:
+            error = synthesis_result.get('error', 'Unknown error')
+            emit("synthesis_failed", {
+                "error": error,
+                "step": synthesis_result.get('step', 'unknown')
+            })
+            error_response = self.synthesizer.synthesize_error(
+                user_prompt,
+                f"Failed to create new capability: {error}"
+            )
+            return {
+                "success": False,
+                "response": error_response,
+                "error": error,
+                "synthesis_failed": True
+            }
+        
+        # Synthesis successful - now execute the new tool
+        tool_name = synthesis_result['tool_name']
+        tests_verified = synthesis_result.get('tests_verified', False)
+        
+        emit("synthesis_successful", {
+            "tool_name": tool_name,
+            "experimental": not tests_verified
+        })
+        
+        if not tests_verified:
+            emit("tool_experimental_warning", {
+                "message": f"Note: '{tool_name}' was registered as experimental (tests failed during verification)"
+            })
+        
+        new_tool_info = self.registry.get_tool_by_name(tool_name)
+        
+        emit("executing", {"tool_name": tool_name})
+        
+        execution_result = self.executor.execute_with_retry(
+            tool_info=new_tool_info,
+            user_prompt=user_prompt
+        )
+        
+        if not execution_result['success']:
+            error = execution_result['error']
+            
+            # If execution failed due to missing arguments, optionally treat as partial success
+            if handle_argument_errors and execution_result.get("error_type") == "ArgumentError":
+                emit("execution_skipped", {
+                    "reason": "Tool created successfully but requires explicit arguments for execution"
+                })
+                return {
+                    "success": True,
+                    "response": f"Tool '{tool_name}' created successfully! It's ready to use when you provide the required arguments.",
+                    "tool_name": tool_name,
+                    "synthesized": True,
+                    "execution_skipped": True
+                }
+            
+            emit("execution_failed", {"error": error})
+            error_response = self.synthesizer.synthesize_error(user_prompt, error)
+            return {
+                "success": False,
+                "response": error_response,
+                "error": error,
+                "tool_name": tool_name,
+                "synthesized": True
+            }
+        
+        tool_result = execution_result['result']
+        result_summary = summarize_result(tool_result)
+        
+        emit("execution_complete", {
+            "tool_name": tool_name,
+            "result": result_summary
+        })
+        
+        emit("synthesizing_response", {})
+        final_response = str(tool_result)
+        
+        emit("complete", {"response": final_response})
+        
+        self.workflow_tracker.end_session()
+        
+        return {
+            "success": True,
+            "response": final_response,
+            "tool_name": tool_name,
+            "tool_result": tool_result,
+            "synthesized": True
+        }
     
     def _execute_single_tool(
         self,
@@ -517,90 +542,12 @@ class AgentOrchestrator:
 
             # Step 2b: If no tool was found OR it was a mismatch, enter synthesis mode
             if not tool_info:
-                emit("no_tool_found", {"query": user_prompt})
-                emit("entering_synthesis_mode", {})
-                
-                # Synthesize new capability
-                synthesis_result = self.synthesis_engine.synthesize_capability(
+                return self._synthesize_and_execute(
                     user_prompt=user_prompt,
-                    callback=callback
+                    emit=emit,
+                    callback=callback,
+                    handle_argument_errors=False
                 )
-                
-                if not synthesis_result['success']:
-                    error = synthesis_result.get('error', 'Unknown error')
-                    emit("synthesis_failed", {
-                        "error": error,
-                        "step": synthesis_result.get('step', 'unknown')
-                    })
-                    error_response = self.synthesizer.synthesize_error(
-                        user_prompt,
-                        f"Failed to create new capability: {error}"
-                    )
-                    return {
-                        "success": False,
-                        "response": error_response,
-                        "error": error,
-                        "synthesis_failed": True
-                    }
-                
-                # Synthesis successful - now execute the new tool
-                tool_name = synthesis_result['tool_name']
-                tests_verified = synthesis_result.get('tests_verified', False)
-
-                emit("synthesis_successful", {
-                    "tool_name": tool_name,
-                    "experimental": not tests_verified
-                })
-
-                if not tests_verified:
-                    emit("tool_experimental_warning", {
-                        "message": f"Note: '{tool_name}' was registered as experimental (tests failed during verification)"
-                    })
-
-                new_tool_info = self.registry.get_tool_by_name(tool_name)
-                
-                emit("executing", {"tool_name": tool_name})
-                
-                execution_result = self.executor.execute_with_retry(
-                    tool_info=new_tool_info,
-                    user_prompt=user_prompt
-                )
-                
-                if not execution_result['success']:
-                    error = execution_result['error']
-                    emit("execution_failed", {"error": error})
-                    error_response = self.synthesizer.synthesize_error(user_prompt, error)
-                    return {
-                        "success": False,
-                        "response": error_response,
-                        "error": error,
-                        "tool_name": tool_name,
-                        "synthesized": True
-                    }
-                
-                tool_result = execution_result['result']
-                
-                # Create concise summary for activity log
-                result_summary = self._summarize_result(tool_result)
-                
-                emit("execution_complete", {
-                    "tool_name": tool_name,
-                    "result": result_summary
-                })
-                
-                emit("synthesizing_response", {})
-                # Return raw data instead of natural language synthesis  
-                final_response = str(tool_result)
-                
-                emit("complete", {"response": final_response})
-                
-                return {
-                    "success": True,
-                    "response": final_response,
-                    "tool_name": tool_name,
-                    "tool_result": tool_result,
-                    "synthesized": True
-                }
         
         except Exception as e:
             self.workflow_tracker.end_session()
@@ -669,48 +616,6 @@ class AgentOrchestrator:
         else:
             # Fallback to single tool execution
             return self._execute_single_tool(user_prompt, emit, start_time, callback)
-    
-    def _summarize_result(self, result: Any) -> str:
-        """
-        Create a concise summary of tool execution result for activity logs
-        
-        Args:
-            result: The result to summarize
-            
-        Returns:
-            A concise string summary
-        """
-        if result is None:
-            return "None"
-        
-        result_str = str(result)
-        
-        # If it's a list, show count and type info
-        if isinstance(result, list):
-            if len(result) == 0:
-                return "Empty list"
-            elif len(result) <= 3:
-                return result_str
-            else:
-                # Show count and preview of first item
-                first_item = str(result[0])[:100]
-                if len(first_item) == 100:
-                    first_item += "..."
-                return f"List of {len(result)} items. First: {first_item}"
-        
-        # If it's a dict, show key count
-        elif isinstance(result, dict):
-            if len(result) <= 5:
-                return result_str
-            else:
-                keys = list(result.keys())[:3]
-                return f"Dict with {len(result)} keys: {keys}..."
-        
-        # For strings/numbers, truncate if too long
-        elif len(result_str) > 200:
-            return result_str[:200] + "..."
-        
-        return result_str
     
     def _execute_workflow_pattern(
         self,

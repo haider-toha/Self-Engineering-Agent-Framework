@@ -52,3 +52,46 @@ def extract_json_from_response(response: str) -> str:
         raise ValueError("No JSON object found in response")
 
     return response[start:end]
+
+
+def summarize_result(result) -> str:
+    """
+    Create a concise summary of tool execution result for activity logs.
+    
+    Args:
+        result: The result to summarize (any type)
+        
+    Returns:
+        A concise string summary
+    """
+    if result is None:
+        return "None"
+    
+    result_str = str(result)
+    
+    # If it's a list, show count and type info
+    if isinstance(result, list):
+        if len(result) == 0:
+            return "Empty list"
+        elif len(result) <= 3:
+            return result_str
+        else:
+            # Show count and preview of first item
+            first_item = str(result[0])[:100]
+            if len(first_item) == 100:
+                first_item += "..."
+            return f"List of {len(result)} items. First: {first_item}"
+    
+    # If it's a dict, show key count
+    elif isinstance(result, dict):
+        if len(result) <= 5:
+            return result_str
+        else:
+            keys = list(result.keys())[:3]
+            return f"Dict with {len(result)} keys: {keys}..."
+    
+    # For strings/numbers, truncate if too long
+    elif len(result_str) > 200:
+        return result_str[:200] + "..."
+    
+    return result_str

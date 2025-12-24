@@ -7,7 +7,7 @@ import time
 import json
 from typing import Dict, Any, List, Optional
 from datetime import datetime
-from supabase import Client
+from supabase import Client, create_client
 from config import Config
 
 
@@ -17,19 +17,14 @@ class WorkflowTracker:
     for learning workflow relationships and compositions.
     """
     
-    def __init__(self, supabase_client: Client = None):
+    def __init__(self, supabase_client: Optional[Client] = None):
         """
         Initialize the workflow tracker
 
         Args:
             supabase_client: Supabase client instance
         """
-        # Supabase already imported at module level (line 10)
-        if supabase_client is None:
-            from supabase import create_client
-            self.supabase = create_client(Config.SUPABASE_URL, Config.SUPABASE_KEY)
-        else:
-            self.supabase = supabase_client
+        self.supabase = supabase_client or create_client(Config.SUPABASE_URL, Config.SUPABASE_KEY)
         self.current_session_id = None
         self.session_tools = []  # Tools executed in current session
         self.session_start_time = None

@@ -2,10 +2,6 @@
 Auto Tuner - Optimizes agent policies using evaluation metrics
 """
 
-import sys
-import os
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 from typing import Dict, Any, List, Optional, Tuple
 import numpy as np
 from datetime import datetime
@@ -415,6 +411,10 @@ class AutoTuner:
 
 
 if __name__ == "__main__":
+    import sys
+    import os
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    
     # Run auto-tuning
     tuner = AutoTuner()
     results = tuner.run_full_tuning()

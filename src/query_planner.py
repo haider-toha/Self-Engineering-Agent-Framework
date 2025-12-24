@@ -5,7 +5,7 @@ Query Planner - Analyzes queries and plans multi-tool execution strategies
 from typing import Dict, Any, List, Optional, Tuple
 from src.llm_client import LLMClient
 from src.capability_registry import CapabilityRegistry
-from supabase import Client
+from supabase import Client, create_client
 from config import Config
 from src.utils import extract_json_from_response
 import json
@@ -21,7 +21,7 @@ class QueryPlanner:
         self,
         llm_client: LLMClient = None,
         registry: CapabilityRegistry = None,
-        supabase_client: Client = None
+        supabase_client: Optional[Client] = None
     ):
         """
         Initialize the query planner
@@ -33,13 +33,7 @@ class QueryPlanner:
         """
         self.llm_client = llm_client or LLMClient()
         self.registry = registry or CapabilityRegistry()
-
-        # Supabase already imported at module level (line 8)
-        if supabase_client is None:
-            from supabase import create_client
-            self.supabase = create_client(Config.SUPABASE_URL, Config.SUPABASE_KEY)
-        else:
-            self.supabase = supabase_client
+        self.supabase = supabase_client or create_client(Config.SUPABASE_URL, Config.SUPABASE_KEY)
     
     def analyze_query(self, user_prompt: str) -> Dict[str, Any]:
         """

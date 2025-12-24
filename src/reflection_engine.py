@@ -2,6 +2,7 @@
 Reflection Engine - Analyzes failures and generates fixes
 """
 
+import os
 from typing import Dict, Any, Optional, Callable, List
 from datetime import datetime
 from supabase import Client, create_client
@@ -190,7 +191,6 @@ class ReflectionEngine:
                 )
                 
                 # Update tool in registry
-                import os
                 with open(tool_info["file_path"], 'w', encoding='utf-8') as f:
                     f.write(proposed_fix)
                 
@@ -454,8 +454,8 @@ Generate a minimal failing test case."""
             "code": code,
             "tests": tests,
             "docstring": docstring,
-            "file_path": f"{Config.TOOLS_DIR}/{tool_name}.py",
-            "test_path": f"{Config.TOOLS_DIR}/test_{tool_name}.py",
+            "file_path": os.path.join(Config.TOOLS_DIR, f"{tool_name}.py"),
+            "test_path": os.path.join(Config.TOOLS_DIR, f"test_{tool_name}.py"),
             "created_by": created_by,
             "change_reason": change_reason,
             "is_current": True
