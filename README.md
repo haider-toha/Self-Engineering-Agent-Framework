@@ -30,6 +30,26 @@ Every major AI agent framework—LangChain, LlamaIndex, AutoGen, CrewAI—shares
 
 This creates a critical bottleneck:
 
+```mermaid
+flowchart LR
+    subgraph Traditional["⚠️ Traditional Workflow"]
+        direction TB
+        A[User Request] --> B{Tool Exists?}
+        B -->|Yes| C[Execute Tool]
+        B -->|No| D[❌ Fail / Error]
+        D --> E[Notify Developer]
+        E --> F[Manual Development]
+        F --> G[Write Tests]
+        G --> H[Debug & Deploy]
+        H --> I[User Proceeds]
+    end
+    
+    style D fill:#ff6b6b,stroke:#c92a2a
+    style F fill:#ffd43b,stroke:#fab005
+    style G fill:#ffd43b,stroke:#fab005
+    style H fill:#ffd43b,stroke:#fab005
+```
+
 **The Traditional Workflow:**
 1. User makes a request
 2. Agent searches for matching tool
@@ -73,6 +93,30 @@ For a typical enterprise deployment requiring 50 custom tools:
 
 Self-Engineering agents flip the traditional model by making tool creation an autonomous capability of the agent itself. When the agent encounters a request it cannot fulfill with existing tools, it:
 
+```mermaid
+flowchart LR
+    subgraph SelfEng["✅ Self-Engineering Workflow"]
+        direction TB
+        A[User Request] --> B{Tool Exists?}
+        B -->|Yes| C[Execute Tool]
+        B -->|No| D[🔧 Auto-Synthesize]
+        D --> E[Generate Spec]
+        E --> F[Create Tests]
+        F --> G[Implement Code]
+        G --> H[Verify in Sandbox]
+        H --> I[Register Tool]
+        I --> C
+        C --> J[Return Results]
+    end
+    
+    style D fill:#69db7c,stroke:#37b24d
+    style E fill:#69db7c,stroke:#37b24d
+    style F fill:#69db7c,stroke:#37b24d
+    style G fill:#69db7c,stroke:#37b24d
+    style H fill:#69db7c,stroke:#37b24d
+    style I fill:#69db7c,stroke:#37b24d
+```
+
 1. **Analyzes the requirement** to understand exactly what capability is needed
 2. **Generates a formal specification** defining the function signature, parameters, and return types
 3. **Creates a comprehensive test suite** covering happy paths, edge cases, and error conditions
@@ -85,6 +129,21 @@ This entire process completes in seconds, not days.
 ### The Test-Driven Advantage
 
 The framework uses Test-Driven Development (TDD) for a critical reason: tests serve as unambiguous specifications. By generating tests before implementation, the system ensures:
+
+```mermaid
+flowchart TB
+    subgraph TDD["Test-Driven Development Flow"]
+        direction LR
+        R[Requirements] --> T[Tests Define Behavior]
+        T --> I[Implementation Satisfies Tests]
+        I --> V[Verification Proves Correctness]
+        V --> D[Tests Serve as Documentation]
+    end
+    
+    T -.->|"Unambiguous\nSpecification"| I
+    I -.->|"Automatic\nVerification"| V
+    V -.->|"Living\nDocumentation"| D
+```
 
 - **Clear Requirements**: Tests define exactly what the code must do
 - **Automatic Verification**: Code either passes or fails—no subjective quality judgments
@@ -104,6 +163,56 @@ Once created, tools become part of a semantic library that grows smarter over ti
 ---
 
 ## Core Architecture
+
+### High-Level System Overview
+
+```mermaid
+flowchart TB
+    subgraph UI["🖥️ User Interface Layer"]
+        WEB[Web Interface]
+        WS[WebSocket Handler]
+    end
+    
+    subgraph ORCH["🧠 Orchestration Layer"]
+        AO[Agent Orchestrator]
+        SM[Session Manager]
+    end
+    
+    subgraph INTEL["💡 Intelligence Layer"]
+        QP[Query Planner]
+        SS[Semantic Search]
+        MM[Memory Manager]
+        RE[Reflection Engine]
+    end
+    
+    subgraph SYNTH["🔧 Synthesis Layer"]
+        SG[Spec Generator]
+        TG[Test Generator]
+        IG[Implementation Generator]
+        SB[Sandbox Verifier]
+    end
+    
+    subgraph DATA["💾 Data Layer"]
+        VDB[(Vector Database)]
+        TR[(Tool Registry)]
+        SES[(Session Storage)]
+        LOG[(Execution Logs)]
+    end
+    
+    subgraph SEC["🔒 Security Layer"]
+        DOCKER[Container Isolation]
+        NET[Network Isolation]
+        RES[Resource Limits]
+        FS[Filesystem Protection]
+    end
+    
+    UI <--> ORCH
+    ORCH <--> INTEL
+    ORCH <--> SYNTH
+    INTEL <--> DATA
+    SYNTH <--> DATA
+    SYNTH <--> SEC
+```
 
 ### System Overview
 
@@ -149,6 +258,66 @@ Multiple mechanisms protect the host system:
 
 ### Request Flow
 
+```mermaid
+sequenceDiagram
+    autonumber
+    participant U as User
+    participant WS as WebSocket
+    participant AO as Orchestrator
+    participant MM as Memory Manager
+    participant QP as Query Planner
+    participant SS as Semantic Search
+    participant SE as Synthesis Engine
+    participant EX as Executor
+    participant SB as Sandbox
+    
+    U->>WS: Submit Request
+    WS->>AO: Forward Request
+    
+    rect rgb(230, 245, 255)
+        Note over AO,MM: Context Enrichment
+        AO->>MM: Get Session History
+        MM-->>AO: Augmented Context
+    end
+    
+    rect rgb(255, 245, 230)
+        Note over AO,QP: Intent Analysis
+        AO->>QP: Analyze Request
+        QP-->>AO: Execution Strategy
+    end
+    
+    alt Explicit Synthesis Request
+        rect rgb(230, 255, 230)
+            Note over AO,SE: Tool Synthesis
+            AO->>SE: Create New Tool
+            SE->>SB: Verify Implementation
+            SB-->>SE: Verification Result
+            SE-->>AO: New Tool Ready
+        end
+    else Tool Lookup
+        rect rgb(255, 230, 245)
+            Note over AO,SS: Tool Discovery
+            AO->>SS: Search Existing Tools
+            SS-->>AO: Matching Tools
+        end
+        
+        alt High Confidence Match
+            AO->>EX: Execute Tool
+        else Low Confidence
+            AO->>SE: Synthesize New Tool
+            SE->>SB: Verify
+            SB-->>SE: Result
+            SE-->>AO: Tool Ready
+            AO->>EX: Execute Tool
+        end
+    end
+    
+    EX-->>AO: Execution Result
+    AO->>MM: Store Interaction
+    AO-->>WS: Stream Response
+    WS-->>U: Display Result
+```
+
 When a user submits a request, it flows through the system as follows:
 
 1. **Context Enrichment**: The Memory Manager retrieves relevant conversation history and augments the request with contextual information
@@ -183,6 +352,40 @@ When a user submits a request, it flows through the system as follows:
 
 ## Key Components
 
+### Component Interaction Map
+
+```mermaid
+flowchart TB
+    subgraph Core["Core Components"]
+        AO[Agent Orchestrator]
+        QP[Query Planner]
+        CR[Capability Registry]
+        SE[Synthesis Engine]
+        EX[Tool Executor]
+    end
+    
+    subgraph Support["Support Components"]
+        WT[Workflow Tracker]
+        RE[Reflection Engine]
+        SM[Session Memory]
+        SB[Secure Sandbox]
+    end
+    
+    AO -->|"routes requests"| QP
+    AO -->|"manages tools"| CR
+    AO -->|"creates tools"| SE
+    AO -->|"runs tools"| EX
+    
+    QP -->|"finds patterns"| WT
+    SE -->|"tests code"| SB
+    EX -->|"logs execution"| WT
+    EX -->|"on failure"| RE
+    RE -->|"fixes tools"| SE
+    
+    SM <-->|"context"| AO
+    CR <-->|"tool lookup"| SS[(Semantic Index)]
+```
+
 ### Agent Orchestrator
 
 The Orchestrator is the central coordinator that ties all subsystems together. Its responsibilities include:
@@ -196,6 +399,32 @@ The Orchestrator is the central coordinator that ties all subsystems together. I
 **Response Assembly**: Combining tool execution results with contextual information to generate coherent user responses.
 
 ### Query Planner
+
+```mermaid
+flowchart TB
+    subgraph QueryPlanner["Query Planner Decision Tree"]
+        IN[Incoming Request] --> KW{Contains Creation\nKeywords?}
+        
+        KW -->|Yes| FS[Force Synthesis]
+        KW -->|No| CA{Complexity\nAnalysis}
+        
+        CA -->|Simple| ST[Single Tool Strategy]
+        CA -->|Complex| MT{Decomposable?}
+        
+        MT -->|Yes| MS[Multi-Tool Sequential]
+        MT -->|No| MC[Multi-Tool Composition]
+        
+        ST --> PM{Pattern\nExists?}
+        MS --> PM
+        MC --> PM
+        
+        PM -->|Yes| WP[Workflow Pattern Reuse]
+        PM -->|No| EX[Execute Strategy]
+        
+        FS --> EX
+        WP --> EX
+    end
+```
 
 The Query Planner performs intelligent analysis of incoming requests to optimize execution strategy:
 
@@ -225,6 +454,29 @@ The Registry manages the persistent library of synthesized tools:
 **Orphan Cleanup**: Automatically removes database entries for tools whose files have been deleted.
 
 ### Synthesis Engine
+
+```mermaid
+flowchart LR
+    subgraph SynthesisEngine["Synthesis Engine Pipeline"]
+        direction TB
+        NL[Natural Language\nRequest] --> SG[Specification\nGenerator]
+        SG --> SPEC[Formal\nSpecification]
+        SPEC --> TG[Test\nGenerator]
+        TG --> TESTS[Test Suite]
+        TESTS --> IG[Implementation\nGenerator]
+        IG --> CODE[Production\nCode]
+        CODE --> VER[Verification]
+        VER --> REG[Registration]
+    end
+    
+    subgraph LLM["LLM Processing"]
+        GPT[GPT-4]
+    end
+    
+    SG <-.-> GPT
+    TG <-.-> GPT
+    IG <-.-> GPT
+```
 
 The engine that transforms natural language into production tools:
 
@@ -290,6 +542,21 @@ Records and analyzes tool execution patterns:
 
 ### Reflection Engine
 
+```mermaid
+flowchart TB
+    subgraph ReflectionEngine["Self-Healing Reflection Loop"]
+        FAIL[Tool Execution\nFailure] --> ANALYZE[Failure\nAnalysis]
+        ANALYZE --> ROOT[Root Cause\nIdentification]
+        ROOT --> FIX[Generate\nFix]
+        FIX --> VERIFY[Sandbox\nVerification]
+        VERIFY --> PASS{Tests\nPass?}
+        PASS -->|Yes| UPDATE[Update Tool\n& Version]
+        PASS -->|No| RETRY{Retries\nLeft?}
+        RETRY -->|Yes| FIX
+        RETRY -->|No| FLAG[Flag as\nExperimental]
+    end
+```
+
 Enables self-healing when tools fail in production:
 
 **Failure Analysis**: When tools fail, the engine analyzes error messages and execution context to identify root causes.
@@ -315,6 +582,52 @@ Maintains conversational context for natural multi-turn interactions:
 ---
 
 ## The Synthesis Pipeline
+
+### Pipeline Overview
+
+```mermaid
+flowchart TB
+    subgraph Pipeline["TDD Synthesis Pipeline"]
+        direction TB
+        
+        subgraph S1["Stage 1: Specification"]
+            NL[Natural Language] --> SPEC[Formal Specification]
+            SPEC --> SIG[Function Signature]
+            SPEC --> PARAMS[Typed Parameters]
+            SPEC --> DOC[Docstring]
+        end
+        
+        subgraph S2["Stage 2: Test Generation"]
+            SIG --> HP[Happy Path Tests]
+            PARAMS --> EC[Edge Case Tests]
+            DOC --> ER[Error Tests]
+            HP & EC & ER --> SUITE[Test Suite]
+        end
+        
+        subgraph S3["Stage 3: Implementation"]
+            SUITE --> IMPL[Generate Code]
+            IMPL --> VAL[Input Validation]
+            IMPL --> LOGIC[Core Logic]
+            IMPL --> HANDLE[Error Handling]
+        end
+        
+        subgraph S4["Stage 4: Verification"]
+            VAL & LOGIC & HANDLE --> SANDBOX[Docker Sandbox]
+            SANDBOX --> PYTEST[Run pytest]
+            PYTEST --> RESULT{All Pass?}
+        end
+        
+        subgraph S5["Stage 5: Registration"]
+            RESULT -->|Yes| EMB[Generate Embedding]
+            EMB --> SAVE[Save to Filesystem]
+            SAVE --> DB[Insert to Database]
+            DB --> READY[Tool Ready]
+            
+            RESULT -->|No| RETRY[Analyze & Retry]
+            RETRY --> IMPL
+        end
+    end
+```
 
 ### Stage 1: Specification Generation
 
@@ -376,6 +689,36 @@ With tests defining requirements, the implementation generator produces code spe
 
 ### Stage 4: Sandbox Verification
 
+```mermaid
+flowchart LR
+    subgraph Host["Host System"]
+        CODE[Implementation]
+        TESTS[Test Suite]
+    end
+    
+    subgraph Container["Docker Container"]
+        direction TB
+        PY[Python Runtime]
+        PYTEST[pytest]
+        TEMP[/tmp - writable]
+        
+        subgraph Mounts["Read-Only Mounts"]
+            M1[Tool Code]
+            M2[Test File]
+            M3[Data Files]
+        end
+    end
+    
+    CODE -->|"copy"| M1
+    TESTS -->|"copy"| M2
+    
+    PY --> PYTEST
+    PYTEST --> RESULT[Test Results]
+    RESULT -->|"stdout"| HOST_OUT[Capture Output]
+    
+    Container -->|"destroy after\nexecution"| CLEANUP[Cleanup]
+```
+
 Generated code must prove itself before joining the tool library.
 
 **Input**: Implementation code and test suite.
@@ -414,6 +757,60 @@ Successfully verified tools become permanent capabilities.
 ---
 
 ## Security Architecture
+
+### Defense in Depth Model
+
+```mermaid
+flowchart TB
+    subgraph Threats["Threat Sources"]
+        MAL[Malicious Code Generation]
+        ACC[Accidental Damage]
+        RES[Resource Exhaustion]
+        EXF[Data Exfiltration]
+    end
+    
+    subgraph Defenses["Defense Layers"]
+        direction TB
+        
+        subgraph L1["Layer 1: Container Isolation"]
+            ISO[Separate Docker Container]
+            FRESH[Fresh Per Execution]
+            DESTROY[Destroy After Run]
+        end
+        
+        subgraph L2["Layer 2: Network Isolation"]
+            NONET[Network Disabled]
+            NODNS[No DNS Resolution]
+            NOPORT[No Listening Ports]
+        end
+        
+        subgraph L3["Layer 3: Resource Limits"]
+            CPU[50% CPU Cap]
+            MEM[256MB Memory]
+            TIME[30s Timeout]
+            PROC[Process Limits]
+        end
+        
+        subgraph L4["Layer 4: Filesystem Protection"]
+            RO[Read-Only Mounts]
+            TMP[Only /tmp Writable]
+            NOHOST[No Host Access]
+        end
+        
+        subgraph L5["Layer 5: Privilege Restriction"]
+            NONROOT[Non-Root User]
+            NOSUDO[No Sudo Access]
+            NOCAP[Minimal Capabilities]
+        end
+    end
+    
+    MAL --> L1
+    ACC --> L3
+    RES --> L3
+    EXF --> L2
+    
+    L1 --> L2 --> L3 --> L4 --> L5 --> SAFE[Safe Execution]
+```
 
 ### The Threat Model
 
@@ -476,6 +873,41 @@ The security architecture accepts certain performance costs:
 
 ## Semantic Intelligence System
 
+### Vector Space Architecture
+
+```mermaid
+flowchart TB
+    subgraph Embedding["Embedding Generation"]
+        TOOL[Tool Docstring] --> EMB_T[Text Embedding Model]
+        QUERY[User Query] --> EMB_Q[Text Embedding Model]
+        EMB_T --> VEC_T[1536-dim Vector]
+        EMB_Q --> VEC_Q[1536-dim Vector]
+    end
+    
+    subgraph VectorDB["Vector Database"]
+        VEC_T --> STORE[(pgvector Storage)]
+        STORE --> INDEX[HNSW Index]
+    end
+    
+    subgraph Search["Similarity Search"]
+        VEC_Q --> COSINE[Cosine Similarity]
+        INDEX --> COSINE
+        COSINE --> RANK[Initial Ranking]
+    end
+    
+    subgraph ReRank["Multi-Factor Re-Ranking"]
+        RANK --> W1[Semantic Similarity\n70%]
+        RANK --> W2[Success Rate\n20%]
+        RANK --> W3[Usage Frequency\n10%]
+        W1 & W2 & W3 --> FINAL[Final Score]
+    end
+    
+    FINAL --> DECISION{Score > Threshold?}
+    DECISION -->|">80%"| EXEC[Execute Tool]
+    DECISION -->|"65-80%"| VERIFY[Verify Compatibility]
+    DECISION -->|"<65%"| SYNTH[Trigger Synthesis]
+```
+
 ### Beyond Keyword Matching
 
 Traditional tool discovery relies on exact keyword matching:
@@ -523,6 +955,41 @@ The semantic system improves over time:
 
 ## Conversational Memory
 
+### Memory Architecture
+
+```mermaid
+flowchart TB
+    subgraph Session["Session Management"]
+        SID[Session ID] --> MSG[(Message Store)]
+        MSG --> HIST[Message History]
+        HIST --> CTX[Context Window]
+    end
+    
+    subgraph DataRef["Data Reference Tracking"]
+        RESP[Response Content] --> PARSE[Pattern Recognition]
+        PARSE --> REFS[Identified References]
+        REFS --> RESOLVE[Reference Resolution]
+    end
+    
+    subgraph Context["Context Construction"]
+        CTX --> SLIDE[Sliding Window]
+        RESOLVE --> AVAIL[Availability Check]
+        SLIDE --> BUILD[Build Augmented Prompt]
+        AVAIL --> BUILD
+        
+        subgraph Overflow["Overflow Handling"]
+            FILTER[Relevance Filtering]
+            SUM[Summarization]
+        end
+        
+        BUILD --> OVERFLOW_CHECK{Token Limit?}
+        OVERFLOW_CHECK -->|Exceeded| FILTER
+        FILTER --> SUM
+        SUM --> BUILD
+        OVERFLOW_CHECK -->|OK| PROMPT[Final Prompt]
+    end
+```
+
 ### The Statefulness Requirement
 
 Practical workflows require remembering context:
@@ -531,7 +998,7 @@ Practical workflows require remembering context:
 
 **With Memory**: Context flows naturally. Users can reference previous results, build on earlier computations, and develop multi-step analyses conversationally.
 
-### Memory Architecture
+### Memory Components
 
 **Session Management**: Each conversation is tracked as a session with a unique identifier. Sessions group related messages together and persist across browser refreshes.
 
@@ -567,6 +1034,42 @@ Memory cannot grow unbounded due to token limits:
 
 ## Self-Learning Mechanisms
 
+### Learning Loop Architecture
+
+```mermaid
+flowchart TB
+    subgraph Execution["Execution Tracking"]
+        EXEC[Tool Execution] --> LOG[Log Invocation]
+        LOG --> METRICS[Update Metrics]
+        METRICS --> SEQ[Sequence Detection]
+    end
+    
+    subgraph Pattern["Pattern Recognition"]
+        SEQ --> DETECT{Recurring\nSequence?}
+        DETECT -->|Yes| RECORD[Record Pattern]
+        RECORD --> CONF[Confidence Scoring]
+        CONF --> STORE[(Pattern Store)]
+    end
+    
+    subgraph Promotion["Composite Promotion"]
+        STORE --> EVAL{Promotion\nCriteria Met?}
+        EVAL -->|Yes| CANDIDATE[Candidate Selection]
+        CANDIDATE --> COMPOSITE[Generate Composite]
+        COMPOSITE --> SYNTH[Synthesis Engine]
+        SYNTH --> REG[Register New Tool]
+    end
+    
+    subgraph Tuning["Auto-Tuning"]
+        METRICS --> COLLECT[Collect Performance Data]
+        COLLECT --> SEARCH[Parameter Search]
+        SEARCH --> OPTIMIZE[Optimize Policies]
+        OPTIMIZE --> POLICY[(Policy Store)]
+    end
+    
+    POLICY -->|"influences"| EXEC
+    REG -->|"new tool"| EXEC
+```
+
 ### Workflow Pattern Recognition
 
 The system learns from repeated tool usage:
@@ -589,6 +1092,28 @@ Frequently-used patterns can be promoted to first-class tools:
 
 ### Policy-Driven Optimization
 
+```mermaid
+flowchart LR
+    subgraph Policies["Tunable Policies"]
+        P1[Retrieval Threshold]
+        P2[Promotion Criteria]
+        P3[Re-ranking Weights]
+        P4[Retry Limits]
+    end
+    
+    subgraph AutoTuner["Auto-Tuner"]
+        direction TB
+        PERF[Performance Metrics]
+        PERF --> ANALYZE[Analyze Trends]
+        ANALYZE --> SUGGEST[Suggest Adjustments]
+        SUGGEST --> TEST[A/B Testing]
+        TEST --> APPLY[Apply Best Config]
+    end
+    
+    Policies --> AutoTuner
+    AutoTuner --> Policies
+```
+
 System behavior is controlled by tunable policies:
 
 **Retrieval Threshold**: The similarity score required for tool reuse versus synthesis.
@@ -610,6 +1135,31 @@ The AutoTuner component optimizes policies based on performance data:
 ---
 
 ## Setup and Configuration
+
+### System Requirements
+
+```mermaid
+flowchart LR
+    subgraph Requirements["Prerequisites"]
+        PY[Python 3.10+]
+        DOCKER[Docker Engine]
+        API[OpenAI API Key]
+        DB[Supabase Account]
+    end
+    
+    subgraph Integration["Integration Points"]
+        PY --> RUNTIME[Application Runtime]
+        DOCKER --> SANDBOX[Secure Sandbox]
+        API --> LLM[LLM Services]
+        DB --> STORAGE[Persistent Storage]
+    end
+    
+    subgraph Services["External Services"]
+        LLM --> GPT[GPT-4 / GPT-4o]
+        LLM --> EMBED[text-embedding-3-small]
+        STORAGE --> PGVEC[PostgreSQL + pgvector]
+    end
+```
 
 ### Prerequisites
 
@@ -635,7 +1185,68 @@ The system uses environment variables for configuration:
 | DOCKER_IMAGE_NAME | Name for sandbox Docker image |
 | DOCKER_TIMEOUT | Sandbox execution timeout in seconds |
 
-### Database Setup
+### Database Schema Overview
+
+```mermaid
+erDiagram
+    agent_tools {
+        uuid id PK
+        text name UK
+        text file_path
+        text test_file_path
+        text docstring
+        vector embedding
+        timestamp created_at
+        int version
+    }
+    
+    tool_executions {
+        uuid id PK
+        uuid tool_id FK
+        jsonb inputs
+        jsonb output
+        boolean success
+        float duration_ms
+        timestamp executed_at
+    }
+    
+    workflow_patterns {
+        uuid id PK
+        text[] tool_sequence
+        int frequency
+        float success_rate
+        float confidence
+        timestamp discovered_at
+    }
+    
+    agent_policies {
+        uuid id PK
+        text policy_name UK
+        jsonb parameters
+        int version
+        timestamp updated_at
+    }
+    
+    session_messages {
+        uuid id PK
+        text session_id
+        text role
+        text content
+        timestamp created_at
+    }
+    
+    reflection_log {
+        uuid id PK
+        uuid tool_id FK
+        text error_message
+        text fix_applied
+        boolean fix_successful
+        timestamp created_at
+    }
+    
+    agent_tools ||--o{ tool_executions : "has"
+    agent_tools ||--o{ reflection_log : "has"
+```
 
 The Supabase database requires several tables and functions:
 
