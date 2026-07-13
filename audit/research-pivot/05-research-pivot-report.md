@@ -96,15 +96,31 @@ Only **15.7%** of mutants survive the 3-assertion oracle — those assertions ar
 
 I first tested H3 with a *suite-level* gate, which is a straw man of my own thesis (it can only discriminate between tasks, never between tools within one). So I built the **per-tool** gate — the faithful analogue of what `sea/agent.py` does in the LLM arm. **It is the stronger test, and it is the one that killed H2 and H3.**
 
-### Why the intervention fails
+### Why the intervention fails — and why that is the most useful thing here
 
-The adequacy metric is **saturated**: median score **1.00**, p25 = 0.80. Half the tasks kill *every* mutant and still admit broken tools.
+> ### Mutation adequacy measures suite↔**implementation** coupling. False admission is a failure of suite↔**specification** coupling.
 
-> **A metric at its ceiling for half the population cannot rank that population.**
+Mutation score asks: *"if I perturb this implementation, does the suite notice?"* It is computed **against the implementation**. But a falsely-admitted tool is not wrong because its code drifted from its tests — it is wrong because **the code and the tests were co-generated from the same misunderstanding of the task.** They agree with each other perfectly. They are wrong *together*.
 
-Mutation score measures sensitivity to *the faults the operators inject*. False admissions are driven by *the faults those operators under-represent*: off-by-one constants (`CRP`) alone account for **57 of the 122** false admissions. The metric and the failure mode are looking at different things. AUC ≈ 0.58 is exactly what a predictor with no dynamic range in its upper half produces.
+Tightly pinning down a wrong behaviour therefore earns a **high** mutation score. The metric rewards precisely the pathology it was recruited to detect.
 
-This rules out the cheap fix. It does **not** refute oracle hardening in general — property-based testing, metamorphic relations, and independently-authored adversarial suites are untested, and are the natural next candidates precisely because they escape the operator-shaped fault space that defeats mutation score here.
+The decisive numbers:
+
+```
+mean adequacy │ tool is CORRECT : 0.736  (n=102)
+mean adequacy │ tool is WRONG   : 0.696  (n=122)     separation: +0.040
+
+Tools whose OWN suite kills 100% of mutants of their OWN impl:   8
+...and are STILL WRONG:                                        3/8 = 38%
+```
+
+This is Konstantinou et al. ([2410.21136](https://arxiv.org/pdf/2410.21136)) — *tests capture what the code does, not what it should do* — made quantitative: **the tighter that capture, the better the mutation score, and the more confidently wrong the library becomes.**
+
+*(Honesty note: my first explanation was that the metric "saturates." That holds for the suite-level score — median 1.00 — and is **false** for the per-tool score, where only 3.6% are at the ceiling and the median is 0.75. The tidy story did not survive contact with the per-tool distribution, and was replaced rather than kept.)*
+
+**The generalisation, which is larger than my own hypothesis:** *any* adequacy metric computed against the implementation is structurally incapable of detecting false admission — mutation score, branch coverage, line coverage, path coverage. They all audit the suite against the code, and **the code is the thing that is wrong.** You cannot audit a witness using only the witness's own testimony.
+
+The corollary is a positive direction, and it is why this null is worth reporting: **a working gate must import information from outside the co-generated pair** — property-based invariants, metamorphic relations, independently-authored adversarial suites, or differential testing against a second model. All untested here. **Not claimed here.**
 
 ---
 

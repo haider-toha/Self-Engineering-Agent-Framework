@@ -26,15 +26,27 @@ More than half the tools admitted to the library are wrong.
 
 **Two of the three hypotheses are dead, including the intervention.** The kill conditions were written down *before* the experiments ran ([`02-thesis-and-architecture.md` §3.3](audit/research-pivot/02-thesis-and-architecture.md)) and they are reported unedited.
 
-### Why the fix fails
+### Why the fix fails — the interesting part
 
-Mutation adequacy is **saturated**: median score **1.00**, p25 = 0.80. Half the tasks kill *every* mutant and still admit broken tools.
+> **Mutation adequacy measures suite↔implementation coupling. False admission is a failure of suite↔specification coupling.**
 
-> A metric sitting at its ceiling for half the population cannot rank that population.
+Mutation score asks *"if I perturb this implementation, does the suite notice?"* — it is computed **against the implementation**. But a falsely-admitted tool isn't wrong because its code drifted from its tests. It's wrong because **the code and the tests were co-generated from the same misunderstanding of the task.** They agree with each other perfectly. They are wrong *together*.
 
-Mutation score measures sensitivity to *the faults the operators inject*. False admissions are driven by *the faults those operators under-represent* — off-by-one constants alone (`CRP`) account for **57 of the 122** false admissions. The metric and the failure mode are looking at different things.
+So tightly pinning down a wrong behaviour earns a **high** mutation score. The metric rewards the exact pathology it was recruited to detect:
 
-This rules out the cheap fix. It does **not** rule out oracle hardening in general — property-based testing, metamorphic relations, and independently-authored adversarial suites remain untested, and are the natural next candidates precisely because they escape the operator-shaped fault space that defeats mutation score here.
+```
+mean adequacy │ tool is CORRECT : 0.736  (n=102)
+mean adequacy │ tool is WRONG   : 0.696  (n=122)      separation: +0.040
+
+Tools whose OWN suite kills 100% of mutants of their OWN impl:   8
+...and are STILL WRONG:                                        3/8 = 38%
+```
+
+A suite can pin its implementation down *perfectly* and the tool is still broken 38% of the time.
+
+**This generalises past my own hypothesis.** *Any* adequacy metric computed against the implementation is structurally incapable of catching false admission — mutation score, branch coverage, line coverage. They all audit the suite against the code, and **the code is the thing that's wrong.** You cannot audit a witness using only the witness's own testimony.
+
+The corollary is the useful part: **a working gate must import information from outside the co-generated pair** — property-based invariants, metamorphic relations, independently-authored adversarial suites, differential testing against a second model. All untested here. Not claimed here.
 
 ---
 

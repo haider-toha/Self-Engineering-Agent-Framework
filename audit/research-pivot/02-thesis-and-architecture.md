@@ -303,7 +303,17 @@ Deleted outright. ~8,000 LOC.
 | **H2** — mutation adequacy predicts false admission, beating naive baselines | dead if its AUC ≈ the baseline's | ❌ **DEAD.** AUC 0.578 vs. 0.519; Δ = +0.060 **[−0.042, +0.160]**, CI includes 0 |
 | **H3** — a mutation gate halves FAR at ≥50% coverage | dead if it fails to halve FAR, or coverage collapses | ❌ **DEAD.** Best is τ=0.7 → FAR 48.9% at 60% coverage: a 10% reduction, not 50% |
 
-**Mechanism (not an excuse — a finding).** The adequacy score is *saturated*: median 1.00 across tasks, p25 = 0.80. Half the population sits at the metric's ceiling and still admits wrong tools. A metric at ceiling for half its population cannot rank that population. Mutation score measures sensitivity to *the faults the operators inject*; false admissions are driven by *the faults those operators under-represent* (off-by-one constants — CRP alone is 57 of 122 false admissions). The metric and the failure mode are looking at different things. See `04-eval-and-iteration.md` §4.
+**Mechanism (not an excuse — a finding).**
+
+> **Mutation adequacy measures suite↔implementation coupling. False admission is a failure of suite↔specification coupling.**
+
+Mutation score asks *"if I perturb this implementation, does the suite notice?"* — it is computed **against the implementation**. But a falsely-admitted tool is not wrong because its code drifted from its tests. It is wrong because **the code and the tests were co-generated from the same misunderstanding**, and they agree with each other perfectly. Tightly pinning down a wrong behaviour earns a *high* mutation score: the metric rewards the very pathology it was recruited to detect.
+
+The decisive number: **of the 8 tools whose own suite kills 100% of the mutants of their own implementation, 3 (38%) are still wrong.** Mean adequacy separates correct from wrong tools by just **+0.040** (0.736 vs 0.696).
+
+*(A note on intellectual honesty: my first explanation was that the metric "saturates". That is true of the suite-level score — median 1.00 — and **false** of the per-tool score, where only 3.6% sit at the ceiling. The tidy story did not survive contact with the per-tool distribution. The mechanism above is what the data actually supports. See `04-eval-and-iteration.md` §4.)*
+
+**The generalisation, which is bigger than my hypothesis.** *Any* adequacy metric computed against the implementation is structurally incapable of detecting false admission — mutation score, branch coverage, line coverage. They all audit the suite against the code, and the code is the thing that is wrong. A working gate must import information from **outside** the co-generated pair.
 
 **Consequent restatement of the contribution.** The thesis in §3.3 was *"the gap is predictable and gateable."* Half of that is false. What survives is:
 

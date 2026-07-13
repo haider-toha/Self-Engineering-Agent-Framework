@@ -106,26 +106,59 @@ H3   tau   admitted     FAR   coverage   FAR reduction
 
 ## 4. Why it fails — the mechanism (the actual finding)
 
-This is not an inexplicable null. The adequacy score is **saturated**:
+This is not an inexplicable null. But the obvious explanation is **wrong**, and it is worth recording that I nearly shipped it.
+
+### 4.1 The explanation I first reached for — and why it does not hold
+
+The *suite-level* score is saturated: median **1.00**, p25 = 0.80 across 174 tasks. Half the tasks kill every mutant and still admit wrong tools, and a metric at its ceiling for half the population cannot rank that population. Tidy.
+
+**But it does not explain the per-tool result, which is the one that matters.** Per-tool adequacy has genuine dynamic range:
 
 ```
-weak-suite adequacy across 174 tasks:  min 0.25   p25 0.80   MEDIAN 1.00   max 1.00
-per-tool adequacy across 224 tools:    min 0.30            median 0.75   max 1.00
+per-tool adequacy (224 admitted tools):
+  min 0.30   p10 0.50   p25 0.60   MEDIAN 0.75   p75 0.81   p90 0.93   max 1.00
+  fraction at ceiling (>= 0.999): 3.6%
 ```
 
-**Half the tasks have a *perfect* mutation score — and still admit wrong tools.**
+Only **3.6%** sit at the ceiling. The predictor has room to discriminate — and it still doesn't. So saturation is a real property of the suite-level score and a **false explanation of the per-tool failure.** The tidy story was wrong.
 
-> **A metric that sits at its ceiling for half the population cannot rank that population.**
+### 4.2 The actual mechanism
 
-The 3-assertion suite kills most operator-shaped mutants (84% of them), scores 1.00, and looks adequate — while the faults that actually survive are the ones the operator set barely produces and the assertions never probe (off-by-one constants: CRP, 61% FAR). Mutation score measures *sensitivity to the faults the mutation operators happen to inject*. False admissions are driven by *the faults those operators under-represent*. The metric and the failure mode are looking at different things.
+Look at what the score does and does not separate:
 
-AUC ≈ 0.58 is precisely what you would expect from a predictor with no dynamic range across the upper half of its distribution. The null is mechanistic, not mysterious.
+```
+mean adequacy │ tool is CORRECT : 0.736   (n = 102)
+mean adequacy │ tool is WRONG   : 0.696   (n = 122)
+separation                      : +0.040
+```
 
-### What this rules out
+```
+FAR by per-tool adequacy:
+  [0.2,0.4)    n=  7    71%
+  [0.4,0.6)    n= 36    56%
+  [0.6,0.8)    n= 96    60%
+  [0.8,1.0)    n= 85    46%
+```
 
-Mutation adequacy is *the* obvious test-quality metric — it is what the literature reaches for (VALTEST, mutation-guided test generation) and it is what I reached for. **It does not transfer to the admission decision in a self-evolving tool library.** That is a real, load-bearing negative result: it tells the field the cheap fix does not work, and says why.
+Shallow and barely monotone. And the decisive observation:
 
-It does *not* rule out oracle hardening in general. Property-based testing, metamorphic relations, and independently-authored adversarial suites remain untested and are the natural next candidates — precisely because they are not confined to the operator-shaped fault space that defeats mutation score here. That is future work, and it is **not claimed here.**
+> **Of the 8 tools whose own suite kills 100% of the mutants of their own implementation, 3 (38%) are still WRONG.**
+
+A suite can pin its implementation down *perfectly* and the tool is still broken. That is not noise — it is the mechanism:
+
+> ### Mutation adequacy measures suite↔**implementation** coupling. False admission is a failure of suite↔**specification** coupling.
+
+Mutation score asks: *"if I perturb this implementation, does the suite notice?"* It is computed **against the implementation**. But a falsely-admitted tool is not wrong because its implementation drifted from its tests — it is wrong because **the implementation and the tests were co-generated from the same misunderstanding of the task.** They agree with each other perfectly. They are both wrong together.
+
+Tightly pinning down a wrong behaviour earns a *high* mutation score. The metric rewards exactly the pathology it was recruited to detect. This is Konstantinou et al. ([2410.21136](https://arxiv.org/pdf/2410.21136)) — *tests capture what the code does, not what it should do* — made quantitative: the tighter that capture, the better the mutation score, and the more confidently wrong the library becomes.
+
+### 4.3 What this rules out — and it is more than mutation score
+
+Mutation adequacy is *the* obvious test-quality metric; it is what the literature reaches for (VALTEST, mutation-guided test generation) and it is what I reached for. It does not transfer to the admission decision.
+
+But the mechanism generalises further than my own hypothesis did. **Any adequacy metric computed against the implementation is structurally incapable of detecting false admission** — mutation score, branch coverage, line coverage, path coverage. They all measure the suite against the code, and *the code is the thing that is wrong*. You cannot audit a witness using only the witness's own testimony.
+
+The corollary is a positive direction, and it is the reason this null is worth publishing: **a working gate must import information from outside the co-generated pair.** Property-based invariants, metamorphic relations, independently-authored adversarial suites, differential testing against a second model — all of these are untested here, and all of them are *not* confined to the implementation-derived space that structurally defeats coverage-style metrics. That is future work. It is **not claimed here.**
 
 ---
 
