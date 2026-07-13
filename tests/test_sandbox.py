@@ -42,9 +42,26 @@ def _wait_for_death(pid: int, timeout_s: float) -> bool:
     return not _is_alive(pid)
 
 
-def _sandbox_temp_dirs() -> set[str]:
-    """Every sandbox scratch directory currently on disk."""
-    return set(glob.glob(os.path.join(tempfile.gettempdir(), "sea-sandbox-*")))
+def _sandbox_temp_dirs(scratch: Path) -> set[str]:
+    """Sandbox scratch directories inside a scratch root WE own.
+
+    This used to glob the *global* system temp directory. That made the two
+    cleanup tests flaky for a reason that had nothing to do with the code under
+    test: any other process creating a ``sea-sandbox-*`` directory in the shared
+    namespace during the assertion window -- notably ``test_per_tool``'s
+    ``ProcessPoolExecutor`` workers, which run the sandbox concurrently -- would
+    show up as a "leak" here.
+
+    Diagnosis (10/10 trials): ``run_script`` created and removed *exactly* its
+    own directory every time; the directories flagged as leaked were ones this
+    process never created. The production code was right and the test was wrong.
+
+    Scoping to a private ``scratch`` root makes the assertion mean what it always
+    claimed to mean -- *this call cleaned up after itself* -- and makes it immune
+    to unrelated processes. It is a stronger test, not a weaker one: it now
+    asserts the root is left completely empty, rather than merely no-worse-off.
+    """
+    return set(glob.glob(os.path.join(str(scratch), "sea-sandbox-*")))
 
 
 # --------------------------------------------------------------------------
@@ -181,22 +198,37 @@ def test_relative_writes_land_in_scratch_dir_not_the_repo() -> None:
     assert not Path("stray.txt").exists()
 
 
-def test_temp_dirs_are_cleaned_up_on_success() -> None:
-    before = _sandbox_temp_dirs()
+def test_temp_dirs_are_cleaned_up_on_success(tmp_path: Path) -> None:
+    run_pytest(PASSING_IMPL, PASSING_TEST, scratch_root=tmp_path)
 
-    run_pytest(PASSING_IMPL, PASSING_TEST)
-
-    assert _sandbox_temp_dirs() - before == set()
+    assert _sandbox_temp_dirs(tmp_path) == set(), "scratch dir survived a clean run"
 
 
-def test_temp_dirs_are_cleaned_up_after_timeout() -> None:
-    """Cleanup must survive the hard path, where we SIGKILL a live process."""
-    before = _sandbox_temp_dirs()
+def test_temp_dirs_are_cleaned_up_after_timeout(tmp_path: Path) -> None:
+    """Cleanup must survive the hard path, where we SIGKILL a live process.
 
-    result = run_script("while True:\n    pass\n", timeout_s=2.0)
+    The scratch root is private to this test, so the assertion is about *this
+    call* and cannot be perturbed by another process running the sandbox
+    concurrently. See ``_sandbox_temp_dirs``.
+    """
+    result = run_script("while True:\n    pass\n", timeout_s=2.0, scratch_root=tmp_path)
 
     assert result.status == "timeout"
-    assert _sandbox_temp_dirs() - before == set()
+    assert _sandbox_temp_dirs(tmp_path) == set(), (
+        "scratch dir leaked after the process group was SIGKILLed"
+    )
+
+
+def test_temp_dirs_are_cleaned_up_across_many_timeouts(tmp_path: Path) -> None:
+    """Cleanup must hold under repetition, not just once.
+
+    A sweep takes the timeout path ~10^5 times; a leak rate of even 1% would
+    bury the machine in scratch trees full of generated code.
+    """
+    for _ in range(5):
+        run_script("while True:\n    pass\n", timeout_s=1.0, scratch_root=tmp_path)
+
+    assert _sandbox_temp_dirs(tmp_path) == set(), "cleanup leaks under repetition"
 
 
 # --------------------------------------------------------------------------

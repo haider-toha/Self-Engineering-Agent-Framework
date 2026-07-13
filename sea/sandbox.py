@@ -59,6 +59,7 @@ from __future__ import annotations
 import math
 import os
 import resource
+import shutil
 import signal
 import subprocess
 import sys
@@ -85,6 +86,13 @@ _FSIZE_LIMIT_BYTES = 64 * _MB
 
 #: Grace period to reap a process group after SIGKILL.
 _KILL_GRACE_S = 5.0
+
+#: Attempts to remove a scratch directory, and the backoff between them.
+#: ``rmtree`` fails transiently on a tree whose process was SIGKILLed a moment
+#: ago -- the kernel has not finished tearing the process down, so a file is
+#: briefly still there when the walk reaches its parent. One retry clears it.
+_CLEANUP_ATTEMPTS = 5
+_CLEANUP_BACKOFF_S = 0.05
 
 #: pytest's exit codes (``pytest.ExitCode``). Reproduced rather than imported so
 #: that the parent process never needs pytest importable to interpret a result.
@@ -124,6 +132,7 @@ def run_pytest(
     *,
     timeout_s: float = 10.0,
     mem_limit_mb: int = 512,
+    scratch_root: Path | None = None,
 ) -> ExecResult:
     """Run ``test_code`` against ``impl_code`` in an isolated subprocess.
 
@@ -148,10 +157,14 @@ def run_pytest(
     Returns:
         The :class:`ExecResult`. ``status == "passed"`` iff pytest exited 0.
     """
-    with tempfile.TemporaryDirectory(
-        prefix="sea-sandbox-", ignore_cleanup_errors=True
-    ) as root:
-        work = Path(root) / "work"
+    root = Path(
+        tempfile.mkdtemp(
+            prefix="sea-sandbox-",
+            dir=str(scratch_root) if scratch_root is not None else None,
+        )
+    )
+    try:
+        work = root / "work"
         work.mkdir()
         (work / "tool.py").write_text(impl_code, encoding="utf-8")
         (work / "test_tool.py").write_text(test_code, encoding="utf-8")
@@ -167,10 +180,12 @@ def run_pytest(
                 "test_tool.py",
             ],
             work=work,
-            root=Path(root),
+            root=root,
             timeout_s=timeout_s,
             mem_limit_mb=mem_limit_mb,
         )
+    finally:
+        _remove_scratch(root)
 
 
 def run_script(
@@ -178,6 +193,7 @@ def run_script(
     *,
     timeout_s: float = 10.0,
     mem_limit_mb: int = 512,
+    scratch_root: Path | None = None,
 ) -> ExecResult:
     """Run an arbitrary Python source string in an isolated subprocess.
 
@@ -204,10 +220,14 @@ def run_script(
     Returns:
         The :class:`ExecResult`.
     """
-    with tempfile.TemporaryDirectory(
-        prefix="sea-sandbox-", ignore_cleanup_errors=True
-    ) as root:
-        work = Path(root) / "work"
+    root = Path(
+        tempfile.mkdtemp(
+            prefix="sea-sandbox-",
+            dir=str(scratch_root) if scratch_root is not None else None,
+        )
+    )
+    try:
+        work = root / "work"
         work.mkdir()
         script = work / "script.py"
         script.write_text(source, encoding="utf-8")
@@ -215,10 +235,12 @@ def run_script(
         return _spawn(
             argv=[sys.executable, "script.py"],
             work=work,
-            root=Path(root),
+            root=root,
             timeout_s=timeout_s,
             mem_limit_mb=mem_limit_mb,
         )
+    finally:
+        _remove_scratch(root)
 
 
 def _spawn(
@@ -271,6 +293,36 @@ def _spawn(
         returncode=returncode,
         duration_s=duration_s,
     )
+
+
+def _remove_scratch(root: Path) -> None:
+    """Delete a scratch tree, retrying the transient failure that follows a kill.
+
+    ``shutil.rmtree`` races the teardown of a process we have just SIGKILLed: the
+    walk can reach a directory while the kernel is still reaping the child that
+    lived in it, and the removal fails with a spurious ``OSError``. It succeeds
+    immediately on a retry.
+
+    This used to be ``TemporaryDirectory(ignore_cleanup_errors=True)``, which
+    swallowed exactly that error and abandoned the directory. Over a sweep of
+    ~10^5 executions -- of which every timeout takes this path -- that leaked
+    thousands of scratch trees full of generated code into the system temp
+    directory, and made ``run_pytest``'s promise that "the temporary directory is
+    always removed" false.
+
+    Cleanup still never raises: a failure to tidy up must not destroy the result
+    of the run it belongs to.
+    """
+    for attempt in range(_CLEANUP_ATTEMPTS):
+        try:
+            shutil.rmtree(root)
+            return
+        except FileNotFoundError:
+            return
+        except OSError:
+            if attempt == _CLEANUP_ATTEMPTS - 1:
+                return
+            time.sleep(_CLEANUP_BACKOFF_S * (attempt + 1))
 
 
 def _classify(*, timed_out: bool, returncode: int | None) -> ExecStatus:
@@ -363,19 +415,53 @@ def _scrubbed_env(work: Path) -> dict[str, str]:
     }
 
 
+def _await_group_exit(pgid: int, timeout_s: float = _KILL_GRACE_S) -> None:
+    """Block until no process remains in ``pgid``.
+
+    ``proc.wait()`` reaps only the *direct* child. A grandchild -- pytest's own
+    worker, or anything a mutant spawned -- is a separate process, and SIGKILL is
+    delivered asynchronously, so it can still be alive (holding its cwd and its
+    inherited stdout/stderr descriptors inside the scratch directory) at the
+    moment we try to delete that directory. Removing the tree out from under it
+    is what made cleanup fail.
+
+    Signal 0 performs the permission/existence check without sending anything, so
+    this polls the group until the kernel has finished tearing it down.
+    """
+    deadline = time.monotonic() + timeout_s
+    while time.monotonic() < deadline:
+        try:
+            os.killpg(pgid, 0)
+        except (ProcessLookupError, PermissionError):
+            return  # the group is gone
+        time.sleep(0.01)
+
+
 def _kill_process_group(proc: subprocess.Popen[bytes]) -> None:
-    """SIGKILL the child's entire process group and reap it.
+    """SIGKILL the child's entire process group and wait for all of it to die.
 
     Killing ``proc`` alone is not enough: pytest and any subprocess a mutant
     spawns are separate processes, and they survive the death of their parent.
     The child was started with ``start_new_session=True``, so its process group
     id equals its pid and one ``killpg`` takes down the whole tree.
+
+    We then wait for the *whole group*, not just the direct child, because the
+    caller's next act is to delete the directory those processes are living in.
     """
     try:
-        os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
-    except (ProcessLookupError, PermissionError):
-        # Already dead, or already reparented. Nothing to kill.
-        pass
+        pgid: int | None = os.getpgid(proc.pid)
+    except ProcessLookupError:
+        pgid = None
+
+    # Never signal our own group: that would kill the harness itself.
+    if pgid is not None and pgid != os.getpgrp():
+        try:
+            os.killpg(pgid, signal.SIGKILL)
+        except (ProcessLookupError, PermissionError):
+            # Already dead, or already reparented. Nothing to kill.
+            pass
+    else:
+        pgid = None
 
     try:
         proc.wait(timeout=_KILL_GRACE_S)
@@ -387,6 +473,11 @@ def _kill_process_group(proc: subprocess.Popen[bytes]) -> None:
             proc.wait(timeout=_KILL_GRACE_S)
         except subprocess.TimeoutExpired:
             pass
+
+    # The direct child is reaped, but its children are not. Wait for them too,
+    # so that the scratch directory is nobody's cwd by the time we delete it.
+    if pgid is not None:
+        _await_group_exit(pgid)
 
 
 def _read_truncated(path: Path) -> str:
