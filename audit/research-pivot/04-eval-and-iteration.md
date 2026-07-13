@@ -218,7 +218,27 @@ This matters for the integrity of the negative result: **H2/H3 failed because th
 | 1 | Smoke test: **zero** mutants admitted; FAR undefined | Small-sample artefact. 3 tiny tasks, ≤8 mutants each, and the operators that fired were coarse (`SDL`, `RVR`) — obliterating faults that even 3 assertions catch. | Measured at scale instead of guessing. At 80 tasks / 816 mutants, 14.6% survive and FAR = 42.9%. The phenomenon was always there; the sample wasn't. |
 | 2 | `ProcessPoolExecutor` → `BrokenProcessPool` | Python 3.14 uses `spawn` on macOS and re-imports `__main__`; a heredoc script has no importable `__main__`. | Real modules + `__main__` guard in the CLI. |
 | 3 | H3 tested at the **suite** level — a straw man of my own thesis | Adequacy was a per-*task* property, so the gate could not discriminate *within* a task. | Built `per_tool.py` (Experiment A2), the faithful per-tool gate. It is the test that ultimately killed H2 and H3 — the *stronger* test, not the weaker one. |
-| 4 | H2/H3 null — is it a bug or a finding? | Investigated rather than accepted. Adequacy distribution: **median 1.00**. The metric is saturated. | Reported as a mechanistic negative result (§4), not an unexplained null. |
+| 4 | H2/H3 null — is it a bug or a finding? | Investigated rather than accepted. First explanation ("the metric saturates") fit the suite-level score and **failed** on the per-tool score, where only 3.6% are at ceiling. | Replaced with the mechanism the data supports: adequacy measures suite↔*implementation* coupling (§4). The tidy story was discarded, not kept. |
+| 5 | Two flaky tests; I diagnosed them and concluded *"the production code was right and the test was wrong."* A reviewer working the same file concluded the opposite. | **Both were partly right — and I over-claimed.** See below. | Kept both fixes; corrected the record. |
+
+### Iteration 5 in full — because it is the same failure mode this project studies
+
+Two sandbox cleanup tests were flaky. I diagnosed them and committed a fix asserting the production code was fine. A second reviewer, working the same file concurrently, reported a real race in the production code and disputed my conclusion.
+
+**Where I was right (proven).** The tests globbed the *shared system temp directory* and asserted that no new `sea-sandbox-*` appeared anywhere — which is not a property of the function under test. Any concurrent sandbox user violates it, including `test_per_tool`'s `ProcessPoolExecutor` workers and my own `exp-a2` sweep, which was running at the time. Ten out of ten trials:
+
+```
+made=['sea-sandbox-rzb5yox2']   removed=['sea-sandbox-rzb5yox2']
+leaked=['sea-sandbox-270xkkw1']      <-- a name this process never created
+```
+
+`run_script` created and removed *exactly* its own directory, every time. Fix: `scratch_root` is now injectable, so a test owns a private directory and the assertion means what it always claimed.
+
+**Where I over-claimed.** My commit message said *"the production code was right."* I could not actually support that, for two reasons. First, `proc.wait()` reaps only the **direct** child — POSIX gives no guarantee about grandchildren, and `killpg` delivery is asynchronous — so a grandchild holding the scratch directory as its cwd is a genuine hazard in `run_pytest`, which spawns one. The reviewer's `_await_group_exit` is correct. Second, and worse: **I had committed that very hunk without reading it.** A `git add -A` swept up the reviewer's concurrent edits, so my commit simultaneously asserted the production code needed no fix *and contained a fix to it*.
+
+**What the evidence actually supports.** I tried three times to reproduce the grandchild race — a synthetic grandchild writing into the scratch directory with *both* defences disabled, and the real test sequence with the group-wait neutralised — and got **zero failures** every time; instrumented runs never recorded a single `rmtree` error. So the fix is retained because it is **correct per POSIX and costs a bounded poll**, *not* because I confirmed the bug it guards against. Saying "this fixes a race I demonstrated" would be exactly the kind of unearned claim this repository exists to measure.
+
+**Why it is in the audit.** A self-verifying agent that grades its own work is the object of study here. Twice in one session my own verification was too generous to itself — once on the saturation story, once here — and both times an independent check caught it. That is the thesis, demonstrated on the author.
 
 ---
 
