@@ -1,10 +1,5 @@
-openai>=1.0.0
-supabase>=2.0.0
-flask>=3.0.0
-flask-socketio>=5.3.0
-flask-restx>=1.3.0
-docker>=7.0.0
-pytest>=7.4.0
-python-dotenv>=1.0.0
-eventlet>=0.33.0
-
+# Runtime
+numpy>=1.26
+openai>=1.0            # LLM arm only (Experiment B); Experiment A needs no key
+evalplus>=0.3.1        # MBPP+ / HumanEval+ -- the independent oracle
+pytest>=7.4            # NOT dev-only: sea.sandbox shells out to `python -m pytest`

@@ -55,3 +55,8 @@ htmlcov/
 *.tmp
 temp/
 
+
+# Research harness
+.venv/
+results/
+.sea/
