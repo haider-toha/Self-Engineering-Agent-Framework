@@ -1,0 +1,1946 @@
+{
+  "experiment": "A2 (LLM-free; PER-TOOL mutation gate)",
+  "config": {
+    "n_tasks": 378,
+    "second_order": 20,
+    "seed": 0
+  },
+  "H1_far": {
+    "far": 0.5446428571428571,
+    "ci95": [
+      0.4792204237733844,
+      0.6085598586684523
+    ],
+    "n_false_admissions": 122,
+    "n_admitted": 224
+  },
+  "H2_predictor": {
+    "auc_per_tool_adequacy": {
+      "value": 0.5782304725168756,
+      "ci95": [
+        0.5014048956875778,
+        0.6544881303639811
+      ]
+    },
+    "auc_code_size_baseline": {
+      "value": 0.5187238829958213,
+      "ci95": [
+        0.45789233898296405,
+        0.5806449484673107
+      ]
+    },
+    "auc_delta": {
+      "value": 0.059506589521054365,
+      "ci95": [
+        -0.04370616758939803,
+        0.16028269116962857
+      ]
+    }
+  },
+  "H3_gate": [
+    {
+      "tau": 0.0,
+      "n_admitted": 224,
+      "n_false_admissions": 122,
+      "far": 0.5446428571428571,
+      "far_lo": 0.4792204237733844,
+      "far_hi": 0.6085598586684523,
+      "coverage": 1.0,
+      "far_reduction_vs_baseline": 0.0
+    },
+    {
+      "tau": 0.1,
+      "n_admitted": 224,
+      "n_false_admissions": 122,
+      "far": 0.5446428571428571,
+      "far_lo": 0.4792204237733844,
+      "far_hi": 0.6085598586684523,
+      "coverage": 1.0,
+      "far_reduction_vs_baseline": 0.0
+    },
+    {
+      "tau": 0.2,
+      "n_admitted": 224,
+      "n_false_admissions": 122,
+      "far": 0.5446428571428571,
+      "far_lo": 0.4792204237733844,
+      "far_hi": 0.6085598586684523,
+      "coverage": 1.0,
+      "far_reduction_vs_baseline": 0.0
+    },
+    {
+      "tau": 0.3,
+      "n_admitted": 224,
+      "n_false_admissions": 122,
+      "far": 0.5446428571428571,
+      "far_lo": 0.4792204237733844,
+      "far_hi": 0.6085598586684523,
+      "coverage": 1.0,
+      "far_reduction_vs_baseline": 0.0
+    },
+    {
+      "tau": 0.4,
+      "n_admitted": 217,
+      "n_false_admissions": 117,
+      "far": 0.5391705069124424,
+      "far_lo": 0.4727426990686681,
+      "far_hi": 0.6042355514058801,
+      "coverage": 0.96875,
+      "far_reduction_vs_baseline": 0.010047593865679438
+    },
+    {
+      "tau": 0.5,
+      "n_admitted": 203,
+      "n_false_admissions": 110,
+      "far": 0.541871921182266,
+      "far_lo": 0.4731883670540764,
+      "far_hi": 0.6090001288771096,
+      "coverage": 0.90625,
+      "far_reduction_vs_baseline": 0.005087620124363923
+    },
+    {
+      "tau": 0.6,
+      "n_admitted": 181,
+      "n_false_admissions": 97,
+      "far": 0.5359116022099447,
+      "far_lo": 0.4632656321055837,
+      "far_hi": 0.6070648562693275,
+      "coverage": 0.8080357142857143,
+      "far_reduction_vs_baseline": 0.016031156598134255
+    },
+    {
+      "tau": 0.7,
+      "n_admitted": 135,
+      "n_false_admissions": 66,
+      "far": 0.4888888888888889,
+      "far_lo": 0.40604637402013033,
+      "far_hi": 0.5723462691070017,
+      "coverage": 0.6026785714285714,
+      "far_reduction_vs_baseline": 0.10236794171220398
+    },
+    {
+      "tau": 0.8,
+      "n_admitted": 85,
+      "n_false_admissions": 39,
+      "far": 0.4588235294117647,
+      "far_lo": 0.3569695582911919,
+      "far_hi": 0.5642385244088045,
+      "coverage": 0.3794642857142857,
+      "far_reduction_vs_baseline": 0.15756991321118607
+    },
+    {
+      "tau": 0.9,
+      "n_admitted": 33,
+      "n_false_admissions": 12,
+      "far": 0.36363636363636365,
+      "far_lo": 0.22186966167959873,
+      "far_hi": 0.5338412737846591,
+      "coverage": 0.14732142857142858,
+      "far_reduction_vs_baseline": 0.33233979135618474
+    },
+    {
+      "tau": 1.0,
+      "n_admitted": 8,
+      "n_false_admissions": 3,
+      "far": 0.375,
+      "far_lo": 0.13684175946152105,
+      "far_hi": 0.6942621454161981,
+      "coverage": 0.03571428571428571,
+      "far_reduction_vs_baseline": 0.3114754098360655
+    }
+  ],
+  "per_tool": [
+    {
+      "task_id": "Mbpp/9",
+      "mutant_index": 5,
+      "operator": "AOR",
+      "per_tool_adequacy": 0.8125,
+      "n_second_order": 16,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/9",
+      "mutant_index": 10,
+      "operator": "AOR",
+      "per_tool_adequacy": 0.8125,
+      "n_second_order": 16,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/9",
+      "mutant_index": 14,
+      "operator": "RVR",
+      "per_tool_adequacy": 0.8666666666666667,
+      "n_second_order": 15,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/20",
+      "mutant_index": 3,
+      "operator": "ROR",
+      "per_tool_adequacy": 0.6,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/20",
+      "mutant_index": 6,
+      "operator": "AOR",
+      "per_tool_adequacy": 0.55,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/20",
+      "mutant_index": 15,
+      "operator": "UOI",
+      "per_tool_adequacy": 0.35,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/20",
+      "mutant_index": 16,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.45,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/20",
+      "mutant_index": 17,
+      "operator": "RVR",
+      "per_tool_adequacy": 0.6,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/20",
+      "mutant_index": 18,
+      "operator": "SDL",
+      "per_tool_adequacy": 0.6,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/20",
+      "mutant_index": 19,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.5,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/20",
+      "mutant_index": 28,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.45,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/20",
+      "mutant_index": 36,
+      "operator": "UOI",
+      "per_tool_adequacy": 0.3,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/20",
+      "mutant_index": 39,
+      "operator": "SDL",
+      "per_tool_adequacy": 0.6,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/62",
+      "mutant_index": 0,
+      "operator": "SDL",
+      "per_tool_adequacy": 1.0,
+      "n_second_order": 2,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/62",
+      "mutant_index": 2,
+      "operator": "ROR",
+      "per_tool_adequacy": 0.42857142857142855,
+      "n_second_order": 7,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/62",
+      "mutant_index": 5,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.5,
+      "n_second_order": 8,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/66",
+      "mutant_index": 3,
+      "operator": "ROR",
+      "per_tool_adequacy": 0.6,
+      "n_second_order": 5,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/67",
+      "mutant_index": 1,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.85,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/67",
+      "mutant_index": 3,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.95,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/67",
+      "mutant_index": 5,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.95,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/68",
+      "mutant_index": 8,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.8888888888888888,
+      "n_second_order": 9,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/69",
+      "mutant_index": 5,
+      "operator": "SDL",
+      "per_tool_adequacy": 0.36363636363636365,
+      "n_second_order": 11,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/69",
+      "mutant_index": 11,
+      "operator": "AOR",
+      "per_tool_adequacy": 0.42857142857142855,
+      "n_second_order": 14,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/69",
+      "mutant_index": 12,
+      "operator": "AOR",
+      "per_tool_adequacy": 0.5,
+      "n_second_order": 14,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/69",
+      "mutant_index": 13,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.5,
+      "n_second_order": 14,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/71",
+      "mutant_index": 4,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.7,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/71",
+      "mutant_index": 15,
+      "operator": "AOR",
+      "per_tool_adequacy": 0.75,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/71",
+      "mutant_index": 17,
+      "operator": "ROR",
+      "per_tool_adequacy": 0.8,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/71",
+      "mutant_index": 21,
+      "operator": "SDL",
+      "per_tool_adequacy": 0.85,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/71",
+      "mutant_index": 22,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.8,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/71",
+      "mutant_index": 29,
+      "operator": "ROR",
+      "per_tool_adequacy": 0.75,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/71",
+      "mutant_index": 36,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.65,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/84",
+      "mutant_index": 10,
+      "operator": "SDL",
+      "per_tool_adequacy": 0.65,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/84",
+      "mutant_index": 15,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.75,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/84",
+      "mutant_index": 17,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.85,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/92",
+      "mutant_index": 5,
+      "operator": "RVR",
+      "per_tool_adequacy": 0.8,
+      "n_second_order": 10,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/92",
+      "mutant_index": 7,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.6666666666666666,
+      "n_second_order": 12,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/96",
+      "mutant_index": 5,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.9,
+      "n_second_order": 10,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/100",
+      "mutant_index": 21,
+      "operator": "ROR",
+      "per_tool_adequacy": 0.65,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/100",
+      "mutant_index": 30,
+      "operator": "AOR",
+      "per_tool_adequacy": 0.7,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/100",
+      "mutant_index": 32,
+      "operator": "ROR",
+      "per_tool_adequacy": 0.8,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/100",
+      "mutant_index": 33,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.75,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/102",
+      "mutant_index": 5,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.75,
+      "n_second_order": 8,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/103",
+      "mutant_index": 1,
+      "operator": "COR",
+      "per_tool_adequacy": 0.8,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/113",
+      "mutant_index": 0,
+      "operator": "SDL",
+      "per_tool_adequacy": 0.6428571428571429,
+      "n_second_order": 14,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/113",
+      "mutant_index": 11,
+      "operator": "SDL",
+      "per_tool_adequacy": 0.6153846153846154,
+      "n_second_order": 13,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/123",
+      "mutant_index": 6,
+      "operator": "ROR",
+      "per_tool_adequacy": 0.8,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/123",
+      "mutant_index": 16,
+      "operator": "AOR",
+      "per_tool_adequacy": 0.8,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/123",
+      "mutant_index": 28,
+      "operator": "AOR",
+      "per_tool_adequacy": 0.8,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/125",
+      "mutant_index": 1,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.85,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/125",
+      "mutant_index": 13,
+      "operator": "ROR",
+      "per_tool_adequacy": 0.85,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/126",
+      "mutant_index": 17,
+      "operator": "AOR",
+      "per_tool_adequacy": 0.9,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/129",
+      "mutant_index": 2,
+      "operator": "SDL",
+      "per_tool_adequacy": 0.7,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/129",
+      "mutant_index": 6,
+      "operator": "SDL",
+      "per_tool_adequacy": 0.55,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/129",
+      "mutant_index": 11,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.55,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/129",
+      "mutant_index": 18,
+      "operator": "RVR",
+      "per_tool_adequacy": 0.6,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/129",
+      "mutant_index": 19,
+      "operator": "SDL",
+      "per_tool_adequacy": 0.55,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/129",
+      "mutant_index": 20,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.45,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/129",
+      "mutant_index": 21,
+      "operator": "SDL",
+      "per_tool_adequacy": 0.6,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/129",
+      "mutant_index": 28,
+      "operator": "SDL",
+      "per_tool_adequacy": 0.55,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/129",
+      "mutant_index": 29,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.45,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/133",
+      "mutant_index": 2,
+      "operator": "ROR",
+      "per_tool_adequacy": 0.6,
+      "n_second_order": 5,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/133",
+      "mutant_index": 5,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.6666666666666666,
+      "n_second_order": 6,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/137",
+      "mutant_index": 0,
+      "operator": "SDL",
+      "per_tool_adequacy": 1.0,
+      "n_second_order": 8,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/137",
+      "mutant_index": 5,
+      "operator": "SDL",
+      "per_tool_adequacy": 0.6666666666666666,
+      "n_second_order": 12,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/138",
+      "mutant_index": 4,
+      "operator": "ROR",
+      "per_tool_adequacy": 0.8181818181818182,
+      "n_second_order": 11,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/138",
+      "mutant_index": 6,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.8333333333333334,
+      "n_second_order": 12,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/160",
+      "mutant_index": 17,
+      "operator": "AOR",
+      "per_tool_adequacy": 0.65,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/160",
+      "mutant_index": 24,
+      "operator": "SDL",
+      "per_tool_adequacy": 0.7,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/162",
+      "mutant_index": 0,
+      "operator": "SDL",
+      "per_tool_adequacy": 1.0,
+      "n_second_order": 10,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/166",
+      "mutant_index": 0,
+      "operator": "SDL",
+      "per_tool_adequacy": 1.0,
+      "n_second_order": 8,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/166",
+      "mutant_index": 5,
+      "operator": "RVR",
+      "per_tool_adequacy": 0.7142857142857143,
+      "n_second_order": 14,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/166",
+      "mutant_index": 6,
+      "operator": "SDL",
+      "per_tool_adequacy": 0.6153846153846154,
+      "n_second_order": 13,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/166",
+      "mutant_index": 7,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.625,
+      "n_second_order": 16,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/167",
+      "mutant_index": 6,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.85,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/167",
+      "mutant_index": 7,
+      "operator": "RVR",
+      "per_tool_adequacy": 0.8,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/167",
+      "mutant_index": 8,
+      "operator": "SDL",
+      "per_tool_adequacy": 0.631578947368421,
+      "n_second_order": 19,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/223",
+      "mutant_index": 2,
+      "operator": "RVR",
+      "per_tool_adequacy": 0.6923076923076923,
+      "n_second_order": 13,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/223",
+      "mutant_index": 3,
+      "operator": "SDL",
+      "per_tool_adequacy": 0.6666666666666666,
+      "n_second_order": 12,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/223",
+      "mutant_index": 4,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.6,
+      "n_second_order": 15,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/223",
+      "mutant_index": 11,
+      "operator": "ROR",
+      "per_tool_adequacy": 0.5714285714285714,
+      "n_second_order": 14,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/235",
+      "mutant_index": 3,
+      "operator": "ROR",
+      "per_tool_adequacy": 0.9,
+      "n_second_order": 10,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/239",
+      "mutant_index": 0,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.9,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/239",
+      "mutant_index": 4,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.9,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/239",
+      "mutant_index": 12,
+      "operator": "COR",
+      "per_tool_adequacy": 0.75,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/239",
+      "mutant_index": 20,
+      "operator": "SDL",
+      "per_tool_adequacy": 0.9,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/244",
+      "mutant_index": 0,
+      "operator": "SDL",
+      "per_tool_adequacy": 1.0,
+      "n_second_order": 7,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/244",
+      "mutant_index": 1,
+      "operator": "ROR",
+      "per_tool_adequacy": 0.5714285714285714,
+      "n_second_order": 14,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/244",
+      "mutant_index": 5,
+      "operator": "RVR",
+      "per_tool_adequacy": 0.6923076923076923,
+      "n_second_order": 13,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/245",
+      "mutant_index": 6,
+      "operator": "ROR",
+      "per_tool_adequacy": 0.9,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/245",
+      "mutant_index": 9,
+      "operator": "ROR",
+      "per_tool_adequacy": 0.9,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/245",
+      "mutant_index": 25,
+      "operator": "ROR",
+      "per_tool_adequacy": 0.85,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/247",
+      "mutant_index": 7,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.95,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/247",
+      "mutant_index": 8,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.95,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/247",
+      "mutant_index": 32,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.95,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/247",
+      "mutant_index": 34,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.95,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/260",
+      "mutant_index": 0,
+      "operator": "SDL",
+      "per_tool_adequacy": 0.8947368421052632,
+      "n_second_order": 19,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/260",
+      "mutant_index": 9,
+      "operator": "RVR",
+      "per_tool_adequacy": 0.75,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/260",
+      "mutant_index": 11,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.75,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/260",
+      "mutant_index": 17,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.75,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/264",
+      "mutant_index": 3,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.7058823529411765,
+      "n_second_order": 17,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/264",
+      "mutant_index": 5,
+      "operator": "AOR",
+      "per_tool_adequacy": 0.75,
+      "n_second_order": 16,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/287",
+      "mutant_index": 6,
+      "operator": "AOR",
+      "per_tool_adequacy": 0.9444444444444444,
+      "n_second_order": 18,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/300",
+      "mutant_index": 7,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.95,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/306",
+      "mutant_index": 9,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.6,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/306",
+      "mutant_index": 15,
+      "operator": "ROR",
+      "per_tool_adequacy": 0.65,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/306",
+      "mutant_index": 19,
+      "operator": "ROR",
+      "per_tool_adequacy": 0.6,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/306",
+      "mutant_index": 23,
+      "operator": "ROR",
+      "per_tool_adequacy": 0.55,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/306",
+      "mutant_index": 28,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.6,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/306",
+      "mutant_index": 32,
+      "operator": "SDL",
+      "per_tool_adequacy": 0.7,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/306",
+      "mutant_index": 34,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.6,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/311",
+      "mutant_index": 3,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.75,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/311",
+      "mutant_index": 5,
+      "operator": "SDL",
+      "per_tool_adequacy": 0.75,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/395",
+      "mutant_index": 7,
+      "operator": "SDL",
+      "per_tool_adequacy": 1.0,
+      "n_second_order": 7,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/428",
+      "mutant_index": 2,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.9,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/428",
+      "mutant_index": 17,
+      "operator": "ROR",
+      "per_tool_adequacy": 0.85,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/435",
+      "mutant_index": 4,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.6,
+      "n_second_order": 10,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/435",
+      "mutant_index": 5,
+      "operator": "SDL",
+      "per_tool_adequacy": 0.4444444444444444,
+      "n_second_order": 9,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/436",
+      "mutant_index": 5,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.6666666666666666,
+      "n_second_order": 6,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/448",
+      "mutant_index": 8,
+      "operator": "RVR",
+      "per_tool_adequacy": 0.8,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/448",
+      "mutant_index": 11,
+      "operator": "SDL",
+      "per_tool_adequacy": 0.8,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/448",
+      "mutant_index": 14,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.65,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/448",
+      "mutant_index": 15,
+      "operator": "RVR",
+      "per_tool_adequacy": 0.8,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/448",
+      "mutant_index": 16,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.65,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/448",
+      "mutant_index": 17,
+      "operator": "SDL",
+      "per_tool_adequacy": 0.8,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/448",
+      "mutant_index": 20,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.65,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/448",
+      "mutant_index": 22,
+      "operator": "SDL",
+      "per_tool_adequacy": 0.75,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/448",
+      "mutant_index": 23,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.65,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/453",
+      "mutant_index": 0,
+      "operator": "SDL",
+      "per_tool_adequacy": 0.9375,
+      "n_second_order": 16,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/453",
+      "mutant_index": 4,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.8,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/453",
+      "mutant_index": 7,
+      "operator": "SDL",
+      "per_tool_adequacy": 0.7,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/453",
+      "mutant_index": 8,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.8,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/455",
+      "mutant_index": 7,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.4444444444444444,
+      "n_second_order": 9,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/455",
+      "mutant_index": 8,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.4444444444444444,
+      "n_second_order": 9,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/468",
+      "mutant_index": 14,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.5,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/468",
+      "mutant_index": 16,
+      "operator": "SDL",
+      "per_tool_adequacy": 0.85,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/468",
+      "mutant_index": 22,
+      "operator": "AOR",
+      "per_tool_adequacy": 0.6,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/468",
+      "mutant_index": 24,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.55,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/468",
+      "mutant_index": 28,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.55,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/555",
+      "mutant_index": 1,
+      "operator": "AOR",
+      "per_tool_adequacy": 0.9333333333333333,
+      "n_second_order": 15,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/559",
+      "mutant_index": 5,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.7,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/559",
+      "mutant_index": 9,
+      "operator": "ROR",
+      "per_tool_adequacy": 0.75,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/559",
+      "mutant_index": 16,
+      "operator": "ROR",
+      "per_tool_adequacy": 0.7,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/577",
+      "mutant_index": 3,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.75,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/577",
+      "mutant_index": 5,
+      "operator": "SDL",
+      "per_tool_adequacy": 0.7,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/577",
+      "mutant_index": 6,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.75,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/577",
+      "mutant_index": 8,
+      "operator": "ROR",
+      "per_tool_adequacy": 0.75,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/577",
+      "mutant_index": 10,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.75,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/577",
+      "mutant_index": 17,
+      "operator": "RVR",
+      "per_tool_adequacy": 0.75,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/577",
+      "mutant_index": 19,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.75,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/589",
+      "mutant_index": 0,
+      "operator": "SDL",
+      "per_tool_adequacy": 0.3888888888888889,
+      "n_second_order": 18,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/589",
+      "mutant_index": 4,
+      "operator": "SDL",
+      "per_tool_adequacy": 0.35,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/589",
+      "mutant_index": 6,
+      "operator": "ROR",
+      "per_tool_adequacy": 0.35,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/589",
+      "mutant_index": 9,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.4,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/589",
+      "mutant_index": 11,
+      "operator": "SDL",
+      "per_tool_adequacy": 0.35,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/589",
+      "mutant_index": 13,
+      "operator": "ROR",
+      "per_tool_adequacy": 0.4,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/589",
+      "mutant_index": 16,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.5,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/589",
+      "mutant_index": 22,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.4,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/592",
+      "mutant_index": 5,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.9,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/594",
+      "mutant_index": 6,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.7647058823529411,
+      "n_second_order": 17,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/594",
+      "mutant_index": 8,
+      "operator": "AOR",
+      "per_tool_adequacy": 0.6666666666666666,
+      "n_second_order": 18,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/594",
+      "mutant_index": 13,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.7647058823529411,
+      "n_second_order": 17,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/602",
+      "mutant_index": 5,
+      "operator": "AOR",
+      "per_tool_adequacy": 0.7272727272727273,
+      "n_second_order": 11,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/602",
+      "mutant_index": 10,
+      "operator": "SDL",
+      "per_tool_adequacy": 0.8,
+      "n_second_order": 10,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/605",
+      "mutant_index": 1,
+      "operator": "ROR",
+      "per_tool_adequacy": 0.5,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/605",
+      "mutant_index": 3,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.5,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/605",
+      "mutant_index": 8,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.5,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/605",
+      "mutant_index": 9,
+      "operator": "AOR",
+      "per_tool_adequacy": 0.4,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/605",
+      "mutant_index": 10,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.5,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/605",
+      "mutant_index": 12,
+      "operator": "AOR",
+      "per_tool_adequacy": 0.4,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/605",
+      "mutant_index": 16,
+      "operator": "RVR",
+      "per_tool_adequacy": 0.55,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/607",
+      "mutant_index": 3,
+      "operator": "SDL",
+      "per_tool_adequacy": 0.7142857142857143,
+      "n_second_order": 7,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/608",
+      "mutant_index": 5,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.95,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/622",
+      "mutant_index": 2,
+      "operator": "SDL",
+      "per_tool_adequacy": 0.75,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/622",
+      "mutant_index": 3,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.8,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/622",
+      "mutant_index": 17,
+      "operator": "SDL",
+      "per_tool_adequacy": 0.75,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/622",
+      "mutant_index": 19,
+      "operator": "SDL",
+      "per_tool_adequacy": 0.8,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/622",
+      "mutant_index": 24,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.8,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/622",
+      "mutant_index": 26,
+      "operator": "ROR",
+      "per_tool_adequacy": 0.8,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/638",
+      "mutant_index": 14,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.9333333333333333,
+      "n_second_order": 15,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/639",
+      "mutant_index": 5,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.8888888888888888,
+      "n_second_order": 9,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/721",
+      "mutant_index": 16,
+      "operator": "SDL",
+      "per_tool_adequacy": 0.95,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/721",
+      "mutant_index": 17,
+      "operator": "SDL",
+      "per_tool_adequacy": 0.95,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/721",
+      "mutant_index": 27,
+      "operator": "AOR",
+      "per_tool_adequacy": 0.8,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/721",
+      "mutant_index": 28,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.8,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/722",
+      "mutant_index": 3,
+      "operator": "ROR",
+      "per_tool_adequacy": 0.7272727272727273,
+      "n_second_order": 11,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/733",
+      "mutant_index": 1,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.7,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/733",
+      "mutant_index": 4,
+      "operator": "SDL",
+      "per_tool_adequacy": 0.75,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/733",
+      "mutant_index": 19,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.75,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/733",
+      "mutant_index": 21,
+      "operator": "ROR",
+      "per_tool_adequacy": 0.7,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/733",
+      "mutant_index": 26,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.8,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/751",
+      "mutant_index": 3,
+      "operator": "ROR",
+      "per_tool_adequacy": 0.65,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/751",
+      "mutant_index": 11,
+      "operator": "ROR",
+      "per_tool_adequacy": 0.75,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/751",
+      "mutant_index": 17,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.7,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/751",
+      "mutant_index": 31,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.7,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/752",
+      "mutant_index": 3,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.85,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/752",
+      "mutant_index": 5,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.75,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/752",
+      "mutant_index": 6,
+      "operator": "SDL",
+      "per_tool_adequacy": 0.95,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/752",
+      "mutant_index": 7,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.8,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/755",
+      "mutant_index": 2,
+      "operator": "ROR",
+      "per_tool_adequacy": 0.7777777777777778,
+      "n_second_order": 9,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/762",
+      "mutant_index": 11,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.8666666666666667,
+      "n_second_order": 15,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/763",
+      "mutant_index": 2,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.8,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/763",
+      "mutant_index": 3,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.8,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/765",
+      "mutant_index": 7,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.8888888888888888,
+      "n_second_order": 9,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/767",
+      "mutant_index": 16,
+      "operator": "AOR",
+      "per_tool_adequacy": 0.8823529411764706,
+      "n_second_order": 17,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/770",
+      "mutant_index": 0,
+      "operator": "SDL",
+      "per_tool_adequacy": 1.0,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/771",
+      "mutant_index": 1,
+      "operator": "COR",
+      "per_tool_adequacy": 0.6,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/771",
+      "mutant_index": 2,
+      "operator": "AOR",
+      "per_tool_adequacy": 0.55,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/771",
+      "mutant_index": 20,
+      "operator": "RVR",
+      "per_tool_adequacy": 0.65,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/771",
+      "mutant_index": 21,
+      "operator": "SDL",
+      "per_tool_adequacy": 0.7,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/771",
+      "mutant_index": 22,
+      "operator": "SDL",
+      "per_tool_adequacy": 0.65,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/771",
+      "mutant_index": 34,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.6,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/771",
+      "mutant_index": 37,
+      "operator": "RVR",
+      "per_tool_adequacy": 0.85,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/781",
+      "mutant_index": 3,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.85,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/781",
+      "mutant_index": 17,
+      "operator": "AOR",
+      "per_tool_adequacy": 0.8,
+      "n_second_order": 20,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/784",
+      "mutant_index": 11,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.7222222222222222,
+      "n_second_order": 18,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/784",
+      "mutant_index": 13,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.7222222222222222,
+      "n_second_order": 18,
+      "strong_pass": true
+    },
+    {
+      "task_id": "Mbpp/784",
+      "mutant_index": 17,
+      "operator": "AOR",
+      "per_tool_adequacy": 0.6666666666666666,
+      "n_second_order": 18,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/803",
+      "mutant_index": 0,
+      "operator": "SDL",
+      "per_tool_adequacy": 1.0,
+      "n_second_order": 11,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/803",
+      "mutant_index": 1,
+      "operator": "ROR",
+      "per_tool_adequacy": 0.6666666666666666,
+      "n_second_order": 18,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/803",
+      "mutant_index": 4,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.6842105263157895,
+      "n_second_order": 19,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/803",
+      "mutant_index": 6,
+      "operator": "SDL",
+      "per_tool_adequacy": 0.6875,
+      "n_second_order": 16,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/806",
+      "mutant_index": 1,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.8,
+      "n_second_order": 20,
+      "strong_pass": false
+    },
+    {
+      "task_id": "Mbpp/806",
+      "mutant_index": 5,
+      "operator": "CRP",
+      "per_tool_adequacy": 0.8,
+      "n_second_order": 20,
+      "strong_pass": false
+    }
+  ]
+}
