@@ -1,10 +1,8 @@
 # When a Self-Verifying Agent Admits a Broken Tool
 
-**A measurement of the false-admission rate in self-evolving tool libraries — and a negative result about the obvious fix.**
+Agents that synthesize their own tools (Voyager, CREATOR, LATM, TroVE, CRAFT) typically admit a tool when it passes tests written by the same model that wrote the implementation. The oracle is self-consistent: code and suite can agree while both are wrong relative to the task.
 
-Agents that synthesize their own tools (Voyager, CREATOR, LATM, TroVE, CRAFT) all share one admission rule: *the same LLM writes both the code and the tests, and the tool joins the library if its own tests pass.* The oracle is self-consistent. "Verified" is unearned.
-
-This repo measures what that costs, and tests whether the standard test-quality metric can fix it.
+This repository measures that cost on MBPP+, and tests whether mutation adequacy of the admitting suite can filter false admissions.
 
 ```
 FAR = P( tool is wrong │ it passed its own tests and was admitted )
@@ -12,27 +10,17 @@ FAR = P( tool is wrong │ it passed its own tests and was admitted )
     = 54.5%   95% CI [47.9%, 60.9%]      (122 of 224 admitted tools)
 ```
 
-More than half the tools admitted to the library are wrong.
-
 ---
 
-## Results
+## Findings
 
-| Hypothesis (pre-registered) | Verdict |
+| Hypothesis | Verdict |
 |---|---|
-| **H1** — false admission is common (≥15%) | ✅ **SUPPORTED.** FAR = 54.5% [47.9%, 60.9%] |
-| **H2** — mutation adequacy of the admitting suite predicts which tools are wrong | ❌ **REFUTED.** AUC 0.578 vs. 0.519 for a naive code-size baseline; Δ = +0.060 **[−0.042, +0.160]** |
-| **H3** — gating on mutation adequacy halves FAR at usable coverage | ❌ **REFUTED.** Best case τ=0.7: FAR 48.9% at 60% coverage — a 10% reduction, not 50% |
+| **H1** — false admission is common (FAR ≥ 15%) | **Supported.** FAR = 54.5% [47.9%, 60.9%] |
+| **H2** — mutation adequacy of the admitting suite predicts which tools are wrong | **Not supported.** AUC 0.578 vs. 0.519 for a code-size baseline; Δ = +0.060 [−0.042, +0.160] |
+| **H3** — gating on mutation adequacy halves FAR at usable coverage | **Not supported.** Best case τ = 0.7: FAR 48.9% at 60% coverage (≈10% relative reduction, not 50%) |
 
-**Two of the three hypotheses are dead, including the intervention.** The kill conditions were written down *before* the experiments ran ([`02-thesis-and-architecture.md` §3.3](audit/research-pivot/02-thesis-and-architecture.md)) and they are reported unedited.
-
-### Why the fix fails — the interesting part
-
-> **Mutation adequacy measures suite↔implementation coupling. False admission is a failure of suite↔specification coupling.**
-
-Mutation score asks *"if I perturb this implementation, does the suite notice?"* — it is computed **against the implementation**. But a falsely-admitted tool isn't wrong because its code drifted from its tests. It's wrong because **the code and the tests were co-generated from the same misunderstanding of the task.** They agree with each other perfectly. They are wrong *together*.
-
-So tightly pinning down a wrong behaviour earns a **high** mutation score. The metric rewards the exact pathology it was recruited to detect:
+**Why the gate fails.** Mutation adequacy measures suite↔implementation coupling. False admission is a failure of suite↔specification coupling. The score asks whether perturbing *this* implementation is noticed by *this* suite. A falsely admitted tool is not wrong because its code drifted from its tests; code and tests were co-generated from the same misunderstanding and agree with each other. Pinning down wrong behaviour therefore earns a high mutation score:
 
 ```
 mean adequacy │ tool is CORRECT : 0.736  (n=102)
@@ -42,108 +30,97 @@ Tools whose OWN suite kills 100% of mutants of their OWN impl:   8
 ...and are STILL WRONG:                                        3/8 = 38%
 ```
 
-A suite can pin its implementation down *perfectly* and the tool is still broken 38% of the time.
-
-**This generalises past my own hypothesis.** *Any* adequacy metric computed against the implementation is structurally incapable of catching false admission — mutation score, branch coverage, line coverage. They all audit the suite against the code, and **the code is the thing that's wrong.** You cannot audit a witness using only the witness's own testimony.
-
-The corollary is the useful part: **a working gate must import information from outside the co-generated pair** — property-based invariants, metamorphic relations, independently-authored adversarial suites, differential testing against a second model. All untested here. Not claimed here.
+The same structural argument applies to other implementation-relative adequacy metrics (branch/line coverage, etc.): they score the suite against the code, and the code is what is wrong. A working gate would need information outside the co-generated pair (e.g. independent suites, metamorphic relations, differential checks). Those alternatives are not evaluated here.
 
 ---
 
-## How it's measured
+## Method
 
-The trick is an oracle that is **independent of the LLM**, so "verified" can be checked against something that cannot be gamed.
+[MBPP+](https://evalplus.github.io/) supplies an oracle independent of any model:
 
-[MBPP+](https://evalplus.github.io/) gives us exactly that. Each task ships:
+- **Weak oracle** — `base_input`: the original MBPP assertions (typically 3). Proxy for a self-generated admission suite (MBPP prompts embed these assertions).
+- **Strong oracle** — `base_input` + `plus_input`: ~111 inputs from EvalPlus’s 35× augmentation, authored independently of any LLM. Ground truth.
 
-- **`base_input`** — the **3** assertions from the original MBPP. This is the *weak* oracle standing in for a self-generated suite. (MBPP's prompt literally *embeds* these 3 assertions, so an LLM writing tests from the prompt reproduces a suite of about this strength.)
-- **`plus_input`** — **~111** inputs (EvalPlus's 35× augmentation), authored independently of any LLM. This is **ground truth**.
+**False admission** := passes the weak oracle and fails the strong one.
 
-A candidate that **passes the 3 and fails the 111** is a false admission: the library accepted a tool whose contract is wrong.
+Candidates are mutants of the human canonical solution. Each candidate runs side by side with the canonical solution on deep-copied inputs; outputs are compared. Per task, mutants are split disjointly into an *adequacy set* (scores the suite) and a held-out *candidate set* (tools seeking admission), so H2 is out-of-sample.
 
-Candidates are mutants of the human canonical solution — real, subtly-wrong programs. To keep it non-circular, each task's mutants are split **disjointly**: an *adequacy set* (which scores the suite) and a held-out *candidate set* (the tools seeking admission). A train/test split, so H2's prediction is genuinely out-of-sample.
-
-Nothing self-reports: every candidate is run **side by side with the canonical solution** on the same deep-copied inputs, and their outputs are compared.
+Only 15.7% of mutants survive the weak oracle; of those admitted, 54.5% fail the strong oracle. Tasks whose canonical solution cannot yield ≥6 mutants for a disjoint split are excluded (204 of 378; 174 used). Results: `results/experiment_a.json`, `results/experiment_a2_per_tool.json`.
 
 ```mermaid
 flowchart LR
     C["canonical solution"] --> M["mutate → candidate tools"]
-    M --> W{"passes the 3<br/>weak assertions?"}
-    W -->|no| K["killed — never admitted"]
-    W -->|yes| A["ADMITTED to library"]
-    A --> S{"passes the 111<br/>independent inputs?"}
+    M --> W{"passes weak<br/>assertions?"}
+    W -->|no| K["killed — not admitted"]
+    W -->|yes| A["admitted"]
+    A --> S{"passes strong<br/>inputs?"}
     S -->|yes| OK["correct"]
-    S -->|no| FA["FALSE ADMISSION<br/>54.5%"]
-    style FA fill:#9d0208,color:#fff
-    style A fill:#2d6a4f,color:#fff
+    S -->|no| FA["false admission<br/>54.5%"]
 ```
+
+**Experiment A** (`exp-a`) estimates FAR and a suite-level gate. **Experiment A2** (`exp-a2`) is the faithful per-tool gate (mutate each admitted tool’s own implementation and score its own suite) — the primary test of H2/H3.
+
+Generated tests are immutable: repair may rewrite the implementation only (`synthesis.py` pins the suite with SHA-256).
 
 ---
 
-## Run it
+## How to run
 
-**Experiment A needs no API key.** It is CPU-only and takes ~20 minutes.
+Experiment A / A2 need no API key (~20–25 minutes, CPU only):
 
 ```bash
 python -m venv .venv && .venv/bin/pip install -r requirements.txt
 
 PYTHONPATH=. .venv/bin/python -m sea exp-a     # FAR + suite-level gate
-PYTHONPATH=. .venv/bin/python -m sea exp-a2    # the per-tool gate (the faithful test)
+PYTHONPATH=. .venv/bin/python -m sea exp-a2    # per-tool gate (primary H2/H3 test)
 PYTHONPATH=. .venv/bin/python -m pytest tests/ -q
 ```
 
-Results land in `results/*.json`. Deterministic under `--seed`.
+Outputs go to `results/*.json`. Deterministic under `--seed`.
 
-**Experiment B — the LLM arm — has never been run.** It is implemented and tested, but no API key was available. **No LLM-arm numbers appear anywhere in this repository, because none were produced.** With a key:
+**Experiment B (LLM arm)** is implemented and unit-tested but has not been run (no API key in this environment). No LLM-arm numbers are reported. To run:
 
 ```bash
-export OPENAI_API_KEY=sk-...
+export OPENAI_API_KEY=...
 PYTHONPATH=. .venv/bin/python -m sea exp-b --limit 100
 ```
 
 ---
 
-## What this is not
-
-Honesty list, because a self-verifying system that oversells itself is the exact failure mode under study.
-
-- ❌ **We did not discover the verification–conformance gap.** [EvolveTool-Bench](https://arxiv.org/abs/2604.00392) (Kaliyev & Maryanskyy) did, and reported 96.8% of 222 synthesized tools failing held-out conformance. Our delta is the **admission-conditioned** rate `P(wrong | admitted)`, which they do not report, plus a tested (and failed) intervention.
-- ❌ **No novelty is claimed in mutation testing.** Using mutants to assess test quality is established ([VALTEST](https://arxiv.org/html/2411.08254v1), [mutation-guided test generation](https://arxiv.org/html/2506.02954v4)). Our contribution was to try it as an *admission gate for a tool library* — and report that it does not work.
-- ❌ **No security guarantee.** Generated code runs in a subprocess with resource limits. That is a **safety** boundary (runaway loops, memory bombs), **not a security boundary** — a determined exploit escapes it, and on macOS `RLIMIT_AS` is not even enforced (measured, not assumed). Run the harness in a container if you do not trust the prompts.
-- ❌ **No claim of self-improvement, learning, or auto-tuning.** Nothing here learns. The one threshold (`τ`) is swept and reported, never "discovered."
-- ❌ **No SOTA claim.** We are not competing on pass@1.
-- ❌ **Mutants are not LLM-written code.** Their fault distribution is operator-shaped, not model-shaped. Experiment A establishes the mechanism and validates the instrument; it does not substitute for the LLM arm. *(Convergent evidence: EvalPlus reports top models losing 19–29 points under the augmented tests — that is `P(fail strong | pass weak)` for real LLM code, consistent with H1. We cite it; we do not claim it.)*
-- ❌ **54% of MBPP+ tasks were excluded** (canonical solutions too short to yield ≥6 mutants). The sample skews toward longer functions.
-- ❌ **In the LLM arm, H2/H3 are UNTESTED, not refuted.**
-
----
-
-## Architecture
-
-~2,900 lines. The one rule is structural:
-
-> ### 🔒 Generated tests are immutable.
-> Once the model emits a suite, nothing may alter it. Repair rewrites the **implementation** only. `synthesis.py` pins the suite with a SHA-256 and asserts it never changes.
->
-> This repo previously contained a method called `_apply_aggressive_test_fixes` that, when generated tests failed, **rewrote the failing assertions until they passed** — and registered the tool anyway as "experimental" if they still didn't. A pass rate produced that way measures nothing. *A synthesis failure rate is a result; a zero failure rate obtained by editing the oracle is a fabrication.*
+## Repository layout
 
 ```
 sea/
-├── sandbox.py     the ONLY way code executes (subprocess + rlimits)
-├── mutation.py    7 AST operators (AOR ROR COR CRP RVR SDL UOI) + mutation score
-├── synthesis.py   spec → tests 🔒 → impl → bounded repair (impl only)
-├── agent.py       retrieve-or-synthesize → verify → gate → register
-├── registry.py    SQLite + numpy cosine
+├── sandbox.py      subprocess execution + resource limits
+├── mutation.py     AST operators + mutation score
+├── synthesis.py    spec → immutable tests → impl → bounded repair
+├── agent.py        retrieve / synthesize / verify / gate / register
+├── registry.py     SQLite + cosine retrieval
 └── eval/
-    ├── oracle.py       MBPP+ differential testing — the independent oracle
-    ├── stats.py        FAR, AUC (Mann-Whitney), Wilson + bootstrap CIs
-    ├── experiment_a.py suite-level gate
-    ├── per_tool.py     per-tool gate — the faithful test of the thesis
-    └── experiment_b.py the LLM arm (needs a key; never run)
+    ├── oracle.py         MBPP+ differential testing
+    ├── stats.py          FAR, AUC, Wilson + bootstrap CIs
+    ├── experiment_a.py   suite-level study
+    ├── per_tool.py       per-tool gate
+    └── experiment_b.py   LLM arm (not run)
+results/            committed JSON from exp-a / exp-a2
+tests/              unit tests for the harness
 ```
 
-Full decision record, including everything deleted and why, in [`audit/research-pivot/`](audit/research-pivot/).
+---
+
+## Limitations
+
+- **Mutants are not LLM-written code.** Faults are operator-shaped. Experiment A validates the instrument and the mechanism; it does not replace the LLM arm. EvalPlus reports top models losing 19–29 points under augmented tests (`P(fail strong | pass weak)` on real model code) — cited as convergent evidence for H1, not claimed as a result of this repo.
+- **Experiment B was not run.** In the LLM arm, H2/H3 are untested, not refuted.
+- **Sample restriction.** 54% of MBPP+ tasks were excluded (canonical solutions too short for ≥6 mutants). The retained sample skews toward longer functions; FAR on excluded short tasks is likely lower.
+- **Single benchmark / language / operator set.** Exact FAR depends on the mutant generators; direction and magnitude are the robust claim.
+- **No security claim.** Subprocess + rlimits are a safety boundary. On macOS, `RLIMIT_AS` is not enforced. Run untrusted prompts in a container.
+- **No claim** of discovering the verification–conformance gap, of novelty in mutation testing itself, of self-improvement / auto-tuning, or of SOTA pass@1.
+
+---
 
 ## Prior work
 
-[Voyager](https://arxiv.org/abs/2305.16291) · [CREATOR](https://arxiv.org/abs/2305.14318) · [LATM](https://arxiv.org/abs/2305.17126) · [TroVE](https://arxiv.org/abs/2401.12869) · [Reflexion](https://arxiv.org/abs/2303.11366) · [EvalPlus](https://arxiv.org/abs/2305.01210) · [EvolveTool-Bench](https://arxiv.org/abs/2604.00392) · [Do LLMs generate test oracles that capture actual or expected behaviour?](https://arxiv.org/pdf/2410.21136)
+[Voyager](https://arxiv.org/abs/2305.16291) · [CREATOR](https://arxiv.org/abs/2305.14318) · [LATM](https://arxiv.org/abs/2305.17126) · [TroVE](https://arxiv.org/abs/2401.12869) · [Reflexion](https://arxiv.org/abs/2303.11366) · [EvalPlus](https://arxiv.org/abs/2305.01210) · [EvolveTool-Bench](https://arxiv.org/abs/2604.00392) · [VALTEST](https://arxiv.org/html/2411.08254v1) · [Do LLMs generate test oracles that capture actual or expected behaviour?](https://arxiv.org/pdf/2410.21136)
+
+EvolveTool-Bench reports that 96.8% of 222 synthesized tools fail held-out conformance. This work reports the admission-conditioned rate `P(wrong | admitted)` and a negative result for mutation-adequacy gating.
