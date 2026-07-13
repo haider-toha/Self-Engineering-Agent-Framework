@@ -1,14 +1,10 @@
-# When a Self-Verifying Agent Admits a Broken Tool
+# False admission in self-verifying tool libraries
 
-Agents that synthesize their own tools (Voyager, CREATOR, LATM, TroVE, CRAFT) typically admit a tool when it passes tests written by the same model that wrote the implementation. The oracle is self-consistent: code and suite can agree while both are wrong relative to the task.
+Systems like Voyager, CREATOR, LATM, TroVE, and CRAFT grow a tool library by synthesizing code and tests from the same model, then admitting a tool when those tests pass. That check can pass even when both the code and the tests are wrong about the task.
 
-This repository measures that cost on MBPP+, and tests whether mutation adequacy of the admitting suite can filter false admissions.
+This repo measures how often that happens on [MBPP+](https://evalplus.github.io/), treating EvalPlus’s held-out inputs as ground truth. It also checks whether the mutation score of the admitting suite can filter bad admissions. It cannot.
 
-```
-FAR = P( tool is wrong │ it passed its own tests and was admitted )
-
-    = 54.5%   95% CI [47.9%, 60.9%]      (122 of 224 admitted tools)
-```
+**Main result.** 122 of 224 admitted tools fail the strong suite — **FAR = 54.5%** (95% CI 47.9–60.9%).
 
 ---
 
@@ -16,21 +12,21 @@ FAR = P( tool is wrong │ it passed its own tests and was admitted )
 
 | Hypothesis | Verdict |
 |---|---|
-| **H1** — false admission is common (FAR ≥ 15%) | **Supported.** FAR = 54.5% [47.9%, 60.9%] |
-| **H2** — mutation adequacy of the admitting suite predicts which tools are wrong | **Not supported.** AUC 0.578 vs. 0.519 for a code-size baseline; Δ = +0.060 [−0.042, +0.160] |
-| **H3** — gating on mutation adequacy halves FAR at usable coverage | **Not supported.** Best case τ = 0.7: FAR 48.9% at 60% coverage (≈10% relative reduction, not 50%) |
+| **H1** — FAR ≥ 15% | Supported (54.5% [47.9%, 60.9%]) |
+| **H2** — mutation adequacy predicts which admitted tools are wrong | Not supported (AUC 0.578 vs 0.519 code-size baseline; Δ +0.060 [−0.042, +0.160]) |
+| **H3** — gating on mutation adequacy halves FAR without collapsing coverage | Not supported (best τ=0.7: FAR 48.9% at 60% coverage, ~10% relative drop) |
 
-**Why the gate fails.** Mutation adequacy measures suite↔implementation coupling. False admission is a failure of suite↔specification coupling. The score asks whether perturbing *this* implementation is noticed by *this* suite. A falsely admitted tool is not wrong because its code drifted from its tests; code and tests were co-generated from the same misunderstanding and agree with each other. Pinning down wrong behaviour therefore earns a high mutation score:
+Mutation score measures how tightly the suite pins down *this* implementation. False admission is different: the suite and the implementation were written together from the same wrong reading of the task, so they agree. A high mutation score can still mean “wrong, but consistent.”
 
 ```
-mean adequacy │ tool is CORRECT : 0.736  (n=102)
-mean adequacy │ tool is WRONG   : 0.696  (n=122)      separation: +0.040
+mean adequacy | correct tools : 0.736  (n=102)
+mean adequacy | wrong tools   : 0.696  (n=122)
 
-Tools whose OWN suite kills 100% of mutants of their OWN impl:   8
-...and are STILL WRONG:                                        3/8 = 38%
+suites that kill 100% of mutants of their own impl : 8
+of those, still wrong                              : 3 (38%)
 ```
 
-The same structural argument applies to other implementation-relative adequacy metrics (branch/line coverage, etc.): they score the suite against the code, and the code is what is wrong. A working gate would need information outside the co-generated pair (e.g. independent suites, metamorphic relations, differential checks). Those alternatives are not evaluated here.
+Coverage-style metrics have the same blind spot when they only look at suite vs code. A useful gate needs something outside that pair (independent tests, metamorphic checks, a second model, etc.). Not tested here.
 
 ---
 

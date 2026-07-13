@@ -70,3 +70,6 @@ agents/
 #   PYTHONPATH=. .venv/bin/python -m sea exp-a --seed 0   (deterministic)
 results/*_raw.json
 results/*.sqlite
+
+# Local agent lockfiles
+skills-lock.json
