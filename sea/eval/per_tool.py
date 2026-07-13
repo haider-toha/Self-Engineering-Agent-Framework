@@ -133,6 +133,10 @@ def run_per_tool_gate(
     if not rows:
         raise RuntimeError("no admitted tools -- nothing to gate")
 
+    # Deterministic serialization: `as_completed` yields in completion order.
+    # The statistics are order-invariant; the artefact should be too.
+    rows.sort(key=lambda r: (int(r.task_id.split("/")[-1]), r.mutant_index))
+
     labels = np.array([0 if r.strong_pass else 1 for r in rows])
     # Predict false admission from LOW per-tool adequacy -> negate.
     pred = np.array([-r.per_tool_adequacy for r in rows])

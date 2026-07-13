@@ -58,10 +58,12 @@ python -m venv .venv && .venv/bin/pip install -r requirements.txt
 
 PYTHONPATH=. .venv/bin/python -m sea exp-a      # FAR + suite-level gate   (~20 min)
 PYTHONPATH=. .venv/bin/python -m sea exp-a2     # per-tool gate            (~25 min)
-PYTHONPATH=. .venv/bin/python -m pytest tests/ -q
+PYTHONPATH=. .venv/bin/python -m pytest tests/ -q          # 272 passed
 ```
 
-**No API key required.** Deterministic under `--seed`. Results → `results/*.json`.
+**No API key required.** Installs clean in a fresh venv (4 dependencies). Results → `results/*.json`, committed as evidence.
+
+**Byte-reproducible**, verified not assumed: two independent runs at `--seed 0` produce identical JSON (`diff` is silent). You are entitled to check my numbers without re-deriving them.
 
 The LLM arm (`exp-b`) is implemented and tested but **was never executed** — no key was available in this environment. **No LLM-arm number appears anywhere in this repository, because none was produced.**
 

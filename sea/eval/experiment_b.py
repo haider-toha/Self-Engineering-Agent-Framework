@@ -30,13 +30,12 @@ from typing import Any
 
 import numpy as np
 
+from sea.agent import handle_task
 from sea.config import Config
 from sea.eval.oracle import check_candidate, load_tasks
 from sea.eval.stats import auc_with_ci, far, paired_auc_delta_ci, wilson_ci
 from sea.llm import OpenAIClient
-from sea.mutation import mutation_score
-from sea.registry import Registry, ToolRecord
-from sea.synthesis import SynthesisError, synthesize
+from sea.registry import Registry
 
 __all__ = ["run_experiment_b"]
 
@@ -77,55 +76,45 @@ def run_experiment_b(
 
     outcomes: list[ToolOutcome] = []
     for i, task in enumerate(tasks, 1):
-        # Retrieval is measured, never assumed. If the library has a
-        # near-paraphrase we reuse it and record that; MBPP+ tasks are largely
-        # independent so we expect this to be rare, and we report whatever it is.
-        reused = None
-        hits = registry.search(llm.embed(task.prompt), k=1)
-        if hits and hits[0][1] >= cfg.retrieval_threshold:
-            rec, score = hits[0]
-            registry.record_retrieval(rec.name, task.task_id, score)
-            reused = rec.name
+        # Drive the REAL agent loop -- the same function the CLI runs. The
+        # experiment must not reimplement the system it is measuring.
+        #
+        # gate=False, record_mutation=True: measure adequacy for every tool but
+        # enforce nothing. One synthesis pass; both arms recovered post hoc by
+        # filtering on the recorded score (below). The gate is a deterministic
+        # function of data already collected, so this is exact -- and it
+        # guarantees both arms see identical tools, making any FAR difference
+        # attributable to the gate alone.
+        out = handle_task(
+            task_id=task.task_id,
+            task_prompt=task.prompt,
+            llm=llm,
+            registry=registry,
+            gate=False,
+            record_mutation=True,
+            tau=0.0,
+            retrieval_threshold=cfg.retrieval_threshold,
+            mutation_max=mutation_max,
+            max_repairs=max_repairs,
+            seed=seed,
+        )
 
-        try:
-            res = synthesize(llm, task.prompt, max_repairs=max_repairs)
-        except SynthesisError as exc:
+        if out.decision == "reused":
             outcomes.append(ToolOutcome(
-                task.task_id, None, False, 0, 0, None, 0, None, reused, str(exc)))
+                task.task_id, out.tool_name, True, 0, 0, None, 0, None,
+                out.tool_name, None))
+            continue
+        if out.decision == "synthesis_error" or out.synthesis is None:
+            outcomes.append(ToolOutcome(
+                task.task_id, None, False, 0, 0, None, 0, None, None, out.error))
             continue
 
-        # Mutation adequacy of the suite that would admit this tool. Recorded for
-        # EVERY tool that passes its own tests, so both arms can be recovered
-        # post hoc from one pass.
-        ms: float | None = None
-        n_mut = 0
-        if res.passed_own_tests:
-            try:
-                rep = mutation_score(
-                    res.code, res.tests, max_mutants=mutation_max, seed=seed
-                )
-                ms, n_mut = rep.score, rep.total
-            except ValueError as exc:
-                outcomes.append(ToolOutcome(
-                    task.task_id, res.spec.function_name, True,
-                    res.repair_attempts, res.tests.count("def test_"),
-                    None, 0, None, reused, f"mutation: {exc}"))
-                continue
-
-        # The independent oracle. Scored only now, and never fed back.
+        res = out.synthesis
+        # The independent oracle. Scored only AFTER the admission decision, and
+        # never fed back into it.
         strong: bool | None = None
         if res.passed_own_tests:
-            v = check_candidate(task, res.code)
-            strong = v.strong_pass
-            registry.add(
-                ToolRecord(
-                    name=res.spec.function_name, task_id=task.task_id,
-                    code=res.code, tests=res.tests,
-                    docstring=res.spec.docstring, mutation_score=ms,
-                    created_at="",
-                ),
-                embedding=llm.embed(res.spec.docstring),
-            )
+            strong = check_candidate(task, res.code).strong_pass
 
         outcomes.append(ToolOutcome(
             task_id=task.task_id,
@@ -133,11 +122,11 @@ def run_experiment_b(
             passed_own_tests=res.passed_own_tests,
             repair_attempts=res.repair_attempts,
             n_tests=res.tests.count("def test_"),
-            mutation_score=ms,
-            mutants_total=n_mut,
+            mutation_score=(out.mutation.score if out.mutation else None),
+            mutants_total=(out.mutation.total if out.mutation else 0),
             strong_pass=strong,
-            reused_from=reused,
-            error=None,
+            reused_from=None,
+            error=out.error,
         ))
 
         if i % 10 == 0 or i == len(tasks):

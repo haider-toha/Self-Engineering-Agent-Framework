@@ -65,8 +65,22 @@ def handle_task(
     mutation_max: int = 30,
     max_repairs: int = 3,
     seed: int = 0,
+    record_mutation: bool | None = None,
 ) -> Outcome:
-    """Handle one task. Retrieve if we can, synthesize if we must."""
+    """Handle one task. Retrieve if we can, synthesize if we must.
+
+    `record_mutation` decouples *measuring* adequacy from *enforcing* it, and
+    defaults to `gate` (measure only when we intend to act on it).
+
+    Setting `record_mutation=True, gate=False` measures the score without
+    enforcing it. That is what the experiment harness uses: it lets us make ONE
+    synthesis pass, record the score for every tool, and then recover both the
+    gated and ungated arms by post-hoc filtering. Both arms therefore see
+    *identical* tools, and every arm runs through this exact function -- so the
+    experiment cannot silently diverge from the agent it claims to measure.
+    """
+    if record_mutation is None:
+        record_mutation = gate
     # ---- 1. Retrieve --------------------------------------------------------
     query = registry.search(llm.embed(task_prompt), k=1)
     if query:
@@ -95,7 +109,7 @@ def handle_task(
     # How adequate is the suite that just admitted this tool? Mutate the tool's
     # own implementation and ask whether its own tests notice.
     report: MutationReport | None = None
-    if gate:
+    if record_mutation:
         try:
             report = mutation_score(
                 res.code, res.tests, max_mutants=mutation_max, seed=seed
@@ -104,14 +118,14 @@ def handle_task(
             # mutation_score's precondition is that the impl passes its tests.
             # We only get here if it does, so this is a genuine anomaly (e.g. a
             # flaky/nondeterministic test). Do not admit on an unknown oracle.
-            return Outcome(
-                task_id, "rejected_by_gate", synthesis=res,
-                error=f"mutation precondition failed: {exc}",
-            )
-        if report.score < tau:
-            return Outcome(
-                task_id, "rejected_by_gate", synthesis=res, mutation=report
-            )
+            if gate:
+                return Outcome(
+                    task_id, "rejected_by_gate", synthesis=res,
+                    error=f"mutation precondition failed: {exc}",
+                )
+
+    if gate and (report is None or report.score < tau):
+        return Outcome(task_id, "rejected_by_gate", synthesis=res, mutation=report)
 
     # ---- 4. Register --------------------------------------------------------
     registry.add(

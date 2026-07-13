@@ -58,5 +58,10 @@ temp/
 
 # Research harness
 .venv/
-results/
 .sea/
+
+# Result summaries ARE committed as evidence (see audit/research-pivot/).
+# The raw per-mutant dump and the SQLite DB are regenerable and are not:
+#   PYTHONPATH=. .venv/bin/python -m sea exp-a --seed 0   (deterministic)
+results/*_raw.json
+results/*.sqlite

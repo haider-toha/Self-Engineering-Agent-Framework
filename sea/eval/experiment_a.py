@@ -205,6 +205,13 @@ def run_experiment_a(
     if not results:
         raise RuntimeError("no usable tasks -- cannot compute FAR")
 
+    # `as_completed` yields in completion order, which varies with process
+    # scheduling. The statistics are unaffected (they are order-invariant), but
+    # the serialized artefact would not be byte-reproducible -- and a reviewer
+    # is entitled to diff two runs and get silence. Sort by task id.
+    results.sort(key=lambda r: int(r.task_id.split("/")[-1]))
+    skipped.sort()
+
     # ---------------- H1: magnitude of FAR ----------------
     cand = [o for r in results for o in r.outcomes if o.role == "candidate"]
     weak = [o.weak_pass for o in cand]

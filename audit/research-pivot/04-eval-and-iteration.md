@@ -166,13 +166,36 @@ The corollary is a positive direction, and it is the reason this null is worth p
 
 ```
 $ PYTHONPATH=. .venv/bin/python -m pytest tests/ -q
-143 passed
+272 passed in 87s
 ```
-(Final count after Phase 4's additional suites is recorded in `05-research-pivot-report.md`.)
 
-Coverage of the real seams — sandbox (isolation, timeout, orphan-kill, env scrubbing), mutation (all 7 operators, determinism, the strong-vs-weak discrimination), registry (cosine ranking, empty DB, dim mismatch), config (fail-fast), llm (cache actually avoids the network), synthesis (**the immutability invariant**), agent (**the gate actually rejects, and nothing is registered when it does**), oracle (**a false admission is detectable by the instrument**), stats (Wilson/AUC/bootstrap against hand-computed values).
+Coverage of the real seams — sandbox (isolation, timeout, orphan-kill, env scrubbing), mutation (all 7 operators, determinism, the strong-vs-weak discrimination), registry (cosine ranking, empty DB, dim mismatch), config (fail-fast), llm (cache actually avoids the network), synthesis (**the immutability invariant**), agent (**the gate actually rejects, and nothing is registered when it does**), oracle (**a false admission is detectable by the instrument** — the test that proves the phenomenon is observable at all), stats (Wilson/AUC/bootstrap against hand-computed values), per_tool (the disjoint split reproduces Experiment A's exactly).
 
 **No test asserts a mock's return value back at itself.** The suite this replaced had 2,823 LOC and *zero* `assert` statements, and its "learning" test used `>=` so it passed when nothing was learned.
+
+### Reproducibility
+
+Verified, not assumed: two independent runs at `--seed 0` produce **byte-identical** result JSON.
+
+```
+$ python -m sea exp-a --limit 60 --seed 0 --out /tmp/r1
+$ python -m sea exp-a --limit 60 --seed 0 --out /tmp/r2
+$ diff /tmp/r1/experiment_a.json /tmp/r2/experiment_a.json   # silent
+```
+
+This required a fix: `as_completed` yields futures in completion order, so while the *statistics* were always order-invariant and identical, the serialized artefact was not. Results are now sorted by task id before writing. A reviewer is entitled to diff two runs and get silence.
+
+### End-to-end check of the mechanism
+
+The gate is not merely present, it *acts* — same implementation, opposite outcomes, attributable to the gate alone:
+
+```
+strong suite, gate ON  (tau=.8)   decision=admitted           mutation=1.00   in_registry=1
+weak suite,   gate ON  (tau=.8)   decision=rejected_by_gate   mutation=0.50   in_registry=0
+weak suite,   gate OFF            decision=admitted           mutation=n/a    in_registry=1
+```
+
+This matters for the integrity of the negative result: **H2/H3 failed because the metric is the wrong signal, not because the gate is broken.** A broken gate would be a bug; a working gate that does not help is a finding.
 
 ---
 
